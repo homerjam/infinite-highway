@@ -3,7 +3,7 @@ var camera, scene, renderer;
 var composer, renderPass, copyPass;
 
 var slabs = [],
-        slabs_initial = 100,
+        slabs_initial = 750,
         slab_rotation = -1.38,
         slab_texture_count = 3,
         slab_geometry,
@@ -11,7 +11,7 @@ var slabs = [],
 
 var road = {
     startZ: 0,
-    startY: -150,
+    startY: -100,
     stepZ: 125,
     stepY: 24,
     speed: 80
@@ -20,8 +20,8 @@ var road = {
 var sway = {
     speedX: 0.6,
     maxX: 40,
-    speedY: 0.1,
-    maxY: 2
+    speedY: 0.5,
+    maxY: 100
 };
 
 window.addEventListener('load', function(){
@@ -38,8 +38,8 @@ window.addEventListener('resize', function(){
 
 function init() {
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000000);
-    camera.position.y = -50;
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.y = 0;
     camera.position.z = 0;
     camera.setLens(28);
 
@@ -62,22 +62,16 @@ function init() {
     }
     position_slabs();
 
-    renderer = new THREE.WebGLRenderer({clearColor: 0x000000, clearAlpha: 1});
+    renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMapEnabled = true;
 
-
     document.body.appendChild(renderer.domElement);
-
 
     composer = new THREE.EffectComposer(renderer);
     renderPass = new THREE.RenderPass(scene, camera);
     copyPass = new THREE.ShaderPass(THREE.CopyShader);
-
     composer.addPass(renderPass);
-
-//    bloomPass = new THREE.BloomPass(1,25,4.0,256);
-//    composer.addPass(bloomPass);
 
     vignettePass = new THREE.ShaderPass(THREE.VignetteShader);
     vignettePass.uniforms.darkness.value = 2.3;
@@ -118,6 +112,8 @@ function position_slabs() {
     }
 }
 
+var progress = 0;
+
 var dist = 0, prev_dist = 0;
 
 var camOffsetX = 0;
@@ -127,7 +123,6 @@ var camOffsetY = 0;
 var swayY = 'up';
 
 function animate() {
-
     requestAnimationFrame(animate);
 
     if (camOffsetX < random(sway.maxX/2, sway.maxX) && swayX === 'right') {
@@ -141,34 +136,46 @@ function animate() {
         swayX = 'right';
     }
 
-    if (camOffsetY < random(sway.maxY/2, sway.maxY) && swayY === 'up') {
+    if (camOffsetY < random(0, sway.maxY) && swayY === 'up') {
         camOffsetY += sway.speedY;
     } else {
         swayY = 'down';
     }
-    if (camOffsetY > -random(sway.maxY/2, sway.maxY) && swayY === 'down') {
+    if (camOffsetY > -random(0, sway.maxY) && swayY === 'down') {
         camOffsetY -= sway.speedY;
     } else {
         swayY = 'up';
     }
 
+    camera.rotation.x = camOffsetY/1000;
+
     camera.position.x = camOffsetX;
-    camera.position.y += (road.speed * (road.stepY / road.stepZ)) + camOffsetY;
+    camera.position.y += road.speed * (road.stepY / road.stepZ);
     camera.position.z -= road.speed;
 
     dist = Math.floor(camera.position.z / road.stepZ);
 
     if (dist < prev_dist) {
-        render_slab();
-        position_slabs();
-        prev_dist = dist;
+        progress++;
+
+        if (progress > 500) {
+            console.log('loop');
+            progress = prev_dist = 0;
+            camera.position.y = 0;
+            camera.position.z = 0;
+
+        } else {
+            prev_dist = dist;
+        }
     }
 
     composer.render(0.1);
-
-//    renderer.render(scene, camera);
 }
 
 function random(from, to) {
     return Math.floor(Math.random() * (to - from + 1) + from);
+}
+
+function difference(a, b) {
+    return Math.abs(a - b);
 }
