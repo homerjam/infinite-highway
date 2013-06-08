@@ -12,11 +12,16 @@ var slabs = {
     materials: {}
 };
 
+var cam = {
+    rotateX: -0.15,
+    posY: 200
+};
+
 var road = {
-    y: -100,
+    y: 0,
     z: 0,
     stepZ: 125,
-    speed: 80
+    speed: 50
 };
 
 var sway = {
@@ -48,10 +53,9 @@ window.addEventListener('resize', function(){
 function init() {
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.y = 0;
+    camera.position.y = cam.posY;
     camera.position.z = 0;
-    camera.rotation.x = -0.1;
-    camera.setLens(28);
+    camera.setLens(35);
 
     scene = new THREE.Scene();
 
@@ -86,7 +90,7 @@ function init() {
 
         vignettePass = new THREE.ShaderPass(THREE.VignetteShader);
         vignettePass.uniforms.darkness.value = 2.5;
-        vignettePass.uniforms.offset.value = 1;
+        vignettePass.uniforms.offset.value = 1.25;
         composer.addPass(vignettePass);
 
         focusPass = new THREE.ShaderPass(THREE.FocusShader);
@@ -129,69 +133,67 @@ var progress = 0;
 
 var dist = 0, prev_dist = 0;
 
-var camOffsetX = 0;
-var swayX = 'right';
+var swayX, camOffsetX = 0, camOffsetX_target = 0;
+var swayY, camOffsetY = 0, camOffsetY_target = 0;
 
-var camOffsetY = 0;
-var swayY = 'up';
-
-var camSwingX = 0;
-var swingX = 'up';
-
-var camSwingY = 0;
-var swingY = 'right';
+var swingX, camSwingX = 0, camSwingX_target = 0;
+var swingY, camSwingY = 0, camSwingY_target = 0;
 
 function animate() {
     requestAnimationFrame(animate);
 
-    if (camOffsetX < random(0, sway.maxX) && swayX === 'right') {
+    if (camOffsetX < camOffsetX_target && swayX === 'right') {
         camOffsetX += sway.speedX;
-    } else {
-        swayX = 'left';
-    }
-    if (camOffsetX > -random(0, sway.maxX) && swayX === 'left') {
+    } else if (camOffsetX > camOffsetX_target && swayX === 'left') {
         camOffsetX -= sway.speedX;
+    } else if (swayX === 'right') {
+        camOffsetX_target = -random(0, sway.maxX);
+        swayX = 'left';
     } else {
+        camOffsetX_target = random(0, sway.maxX);
         swayX = 'right';
     }
 
-    if (camOffsetY < random(sway.maxY/2, sway.maxY) && swayY === 'up') {
+    if (camOffsetY < camOffsetY_target && swayY === 'up') {
         camOffsetY += sway.speedY;
-    } else {
-        swayY = 'down';
-    }
-    if (camOffsetY > -random(sway.maxY/2, sway.maxY) && swayY === 'down') {
+    } else if (camOffsetY > camOffsetY_target && swayY === 'down') {
         camOffsetY -= sway.speedY;
+    } else if (swayY === 'up') {
+        camOffsetY_target = -random(0, sway.maxY);
+        swayY = 'down';
     } else {
+        camOffsetY_target = random(0, sway.maxY);
         swayY = 'up';
     }
 
-    if (camSwingX < random(swing.maxX/2, swing.maxX) && swingX === 'up') {
+    if (camSwingX < camSwingX_target && swingX === 'up') {
         camSwingX += swing.speedX;
-    } else {
-        swingX = 'down';
-    }
-    if (camSwingX > -random(swing.maxX/2, swing.maxX) && swingX === 'down') {
+    } else if (camSwingX > camSwingX_target && swingX === 'down') {
         camSwingX -= swing.speedX;
+    } else if (swingX === 'up') {
+        camSwingX_target = -random(0, swing.maxX);
+        swingX = 'down';
     } else {
+        camSwingX_target = random(0, swing.maxX);
         swingX = 'up';
     }
 
-    if (camSwingY < random(swing.maxY/2, swing.maxY) && swingY === 'right') {
+    if (camSwingY < camSwingY_target && swingY === 'right') {
         camSwingY += swing.speedY;
-    } else {
-        swingY = 'left';
-    }
-    if (camSwingY > -random(swing.maxY/2, swing.maxY) && swingY === 'left') {
+    } else if (camSwingY > camSwingY_target && swingY === 'left') {
         camSwingY -= swing.speedY;
+    } else if (swingY === 'right') {
+        camSwingY_target = -random(0, swing.maxY);
+        swingY = 'left';
     } else {
+        camSwingY_target = random(0, swing.maxY);
         swingY = 'right';
     }
 
     camera.position.x = camOffsetX;
-    camera.position.y = camOffsetY;
+    camera.position.y = cam.posY + camOffsetY;
 
-    camera.rotation.x = camSwingX/1000;
+    camera.rotation.x = cam.rotateX + (camSwingX/1000);
     camera.rotation.y = camSwingY/1000;
 
     camera.position.z -= road.speed;
@@ -204,7 +206,6 @@ function animate() {
         if (progress > 500) {
             console.log('loop');
             progress = prev_dist = 0;
-            camera.position.y = 0;
             camera.position.z = 0;
 
         } else {
