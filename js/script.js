@@ -1,6 +1,8 @@
-var camera, scene, renderer;
+var camera, scene, renderer, controls, controls_enabled = false;
 
 var composer, renderPass, copyPass;
+
+var light1, light2;
 
 var effects = true;
 
@@ -14,28 +16,28 @@ var slabs = {
 
 var cam = {
     rotateX: -0.15,
-    posY: 200
+    posY: 100
 };
 
 var road = {
     y: 0,
     z: 0,
     stepZ: 125,
-    speed: 50
+    speed: 80
 };
 
 var sway = {
-    speedX: 0.2,
-    maxX: 40,
+    speedX: 0.4,
+    maxX: 30,
     speedY: 0.5,
     maxY: 10
 };
 
 var swing = {
-    speedX: 0.3,
+    speedX: 0.5,
     maxX: 10,
-    speedY: 0.1,
-    maxY: 20
+    speedY: 0.5,
+    maxY: 10
 };
 
 window.addEventListener('load', function(){
@@ -57,12 +59,53 @@ function init() {
     camera.position.z = 0;
     camera.setLens(35);
 
+    controls = new THREE.TrackballControls( camera );
+    controls.target.set( 0, 0, 0 );
+
+    controls.rotateSpeed = 1.0;
+    controls.zoomSpeed = 1.2;
+    controls.panSpeed = 0.8;
+
+    controls.noZoom = false;
+    controls.noPan = false;
+
+    controls.staticMoving = false;
+    controls.dynamicDampingFactor = 0.15;
+
+    controls.keys = [ 65, 83, 68 ];
+
     scene = new THREE.Scene();
 
-    scene.fog = new THREE.FogExp2(0x000000, 0.00025);
+    scene.fog = new THREE.FogExp2(0x000000, 0.0002);
+
+    scene.add(new THREE.AmbientLight(0xffffff));
+
+    light1 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light1.target.position.x = -400;
+    light1.target.position.y = 50;
+    light1.exponent = 150;
+    scene.add(light1);
+
+    light2 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light2.target.position.x = 400;
+    light2.target.position.y = 50;
+    light2.exponent = 150;
+    scene.add(light2);
+
+    var sphere = new THREE.SphereGeometry(10, 16, 8);
+
+//    var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
+//    l1.position = light1.position;
+//    scene.add(l1);
+//
+//    var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
+//    l2.position = light2.position;
+//    scene.add(l2);
 
     for (var i = 0; i < slabs.texture_count; i++) {
-        var slab_material = new THREE.MeshBasicMaterial({
+        var slab_material = new THREE.MeshPhongMaterial({
+            ambient: 0x333333,
+            shading: THREE.SmoothShading,
             map: THREE.ImageUtils.loadTexture('img/slab'+i+'.png')
         });
         slab_material.map.needsUpdate = true;
@@ -76,7 +119,8 @@ function init() {
     }
     position_slabs();
 
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setClearColor( scene.fog.color, 1 );
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMapEnabled = true;
 
@@ -89,8 +133,8 @@ function init() {
         composer.addPass(renderPass);
 
         vignettePass = new THREE.ShaderPass(THREE.VignetteShader);
-        vignettePass.uniforms.darkness.value = 2.5;
-        vignettePass.uniforms.offset.value = 1.25;
+        vignettePass.uniforms.darkness.value = 1.05;
+        vignettePass.uniforms.offset.value = 1.5;
         composer.addPass(vignettePass);
 
         focusPass = new THREE.ShaderPass(THREE.FocusShader);
@@ -190,13 +234,24 @@ function animate() {
         swingY = 'right';
     }
 
-    camera.position.x = camOffsetX;
-    camera.position.y = cam.posY + camOffsetY;
+    if (controls_enabled) {
+        controls.update();
 
-    camera.rotation.x = cam.rotateX + (camSwingX/1000);
-    camera.rotation.y = camSwingY/1000;
+    } else {
+        camera.position.x = camOffsetX;
+        camera.position.y = cam.posY + camOffsetY;
 
-    camera.position.z -= road.speed;
+        camera.rotation.x = cam.rotateX + (camSwingX/1000);
+        camera.rotation.y = camSwingY/1000;
+
+        camera.position.z -= road.speed;
+
+        light1.position.x = -60 + camOffsetX;
+        light2.position.x = 60 + camOffsetX;
+        light1.position.y = light2.position.y = 50 + camOffsetY;
+        light1.position.z = light2.position.z = camera.position.z - 00;
+        light1.target.position.z = light2.target.position.z = camera.position.z - 3000;
+    }
 
     dist = Math.floor(camera.position.z / road.stepZ);
 
