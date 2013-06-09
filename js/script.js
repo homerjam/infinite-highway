@@ -1,3 +1,17 @@
+var options = {
+    road_speed: 100
+};
+
+$.fn.ready(function(){
+
+    $(document).on('keydown', function(e){
+       if (e.keyCode === 32) {
+           road.speed = road.speed === 0 ? options.road_speed : 0;
+       }
+    });
+
+});
+
 var camera, scene, renderer, controls, controls_enabled = false;
 
 var composer, renderPass, copyPass;
@@ -17,16 +31,24 @@ var slabs = {
     materials: {}
 };
 
+var lines = {
+    lines: [],
+    w: 30,
+    h: 800,
+    count: 300,
+    geometry: null
+};
+
 var cam = {
     rotateX: -Math.PI/64,
-    posY: 150
+    posY: 100
 };
 
 var road = {
     y: 0,
     z: 0,
     stepZ: slabs.h,
-    speed: 80
+    speed: options.road_speed
 };
 
 var sway = {
@@ -123,13 +145,39 @@ function init() {
         t = 0;
         if (n === nn) {
             n = 0;
-            nn = random(3, 15);
+            nn = random(5, 20);
             t = random(1, slabs.texture_count-1);
         }
-        render_slab(slabs.materials[t]);
+
+        var slab = new THREE.Mesh(slabs.geometry, slabs.materials[t]);
+        slab.doubleSided = true;
+        slab.rotation.x = -Math.PI/2;
+        slab.position.y = road.y;
+        slab.position.z = road.z - (i * road.stepZ);
+        slabs.slabs.push(slab);
+        scene.add(slab);
+
         n++;
     }
-    position_slabs();
+
+
+    lines.material = new THREE.MeshPhongMaterial({
+        color: 0xffff00,
+        ambient: 0x222222,
+        shading: THREE.SmoothShading
+//        map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.png')
+    });
+    lines.geometry = new THREE.PlaneGeometry(lines.w, lines.h);
+    for (var i = 0; i < lines.count; i++) {
+        var line = new THREE.Mesh(lines.geometry, lines.material);
+        line.doubleSided = true;
+        line.rotation.x = -Math.PI/2;
+        line.position.y = 1;
+        line.position.z = 0 - (i * (lines.h * 2));
+        lines.lines.push(line);
+        scene.add(line);
+    }
+
 
     renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setClearColor( scene.fog.color, 1 );
@@ -156,22 +204,6 @@ function init() {
 
         composer.addPass(copyPass);
         copyPass.renderToScreen = true;
-    }
-}
-
-function render_slab(material) {
-    var slab = new THREE.Mesh(slabs.geometry, material);
-    slab.doubleSided = true;
-    slab.rotation.x = -Math.PI/2;
-    slabs.slabs.push(slab);
-    scene.add(slab);
-}
-
-function position_slabs() {
-    for (i in slabs.slabs) {
-        var slab = slabs.slabs[i];
-        slab.position.y = road.y;
-        slab.position.z = road.z - (i * road.stepZ);
     }
 }
 
