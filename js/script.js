@@ -18,7 +18,7 @@ var composer, renderPass, copyPass;
 
 var light1, light2;
 
-var effects = false;
+var effects = true;
 
 var slabs = {
     slabs: [],
@@ -41,14 +41,15 @@ var lines = {
 
 var cam = {
     rotateX: -Math.PI/64,
-    posY: 100
+    posY: 150
 };
 
 var road = {
     y: 0,
     z: 0,
-    stepZ: slabs.h,
-    speed: options.road_speed
+    speed: options.road_speed,
+    speedFluc: 0.2,
+    speedFlucMax: 20
 };
 
 var sway = {
@@ -153,7 +154,7 @@ function init() {
         slab.doubleSided = true;
         slab.rotation.x = -Math.PI/2;
         slab.position.y = road.y;
-        slab.position.z = road.z - (i * road.stepZ);
+        slab.position.z = road.z - (i * slabs.h);
         slabs.slabs.push(slab);
         scene.add(slab);
 
@@ -217,6 +218,8 @@ var swayY, camOffsetY = 0, camOffsetY_target = 0;
 var swingX, camSwingX = 0, camSwingX_target = 0;
 var swingY, camSwingY = 0, camSwingY_target = 0;
 
+var speedFluc, camSpeedFluc = 0, speedFluc_target = 0;
+
 function animate() {
     requestAnimationFrame(animate);
 
@@ -268,6 +271,18 @@ function animate() {
         swingY = 'right';
     }
 
+    if (camSpeedFluc < speedFluc_target && speedFluc === 'faster') {
+        camSpeedFluc += road.speedFluc;
+    } else if (camSpeedFluc > speedFluc_target && speedFluc === 'slower') {
+        camSpeedFluc -= road.speedFluc;
+    } else if (speedFluc === 'faster') {
+        speedFluc_target = -random(0, road.speedFlucMax);
+        speedFluc = 'slower';
+    } else {
+        speedFluc_target = random(0, road.speedFlucMax);
+        speedFluc = 'faster';
+    }
+
     if (controls_enabled) {
         controls.update();
 
@@ -278,7 +293,7 @@ function animate() {
         camera.rotation.x = cam.rotateX + (camSwingX/1000);
         camera.rotation.y = camSwingY/1000;
 
-        camera.position.z -= road.speed;
+        camera.position.z -= road.speed + camSpeedFluc;
 
         light1.position.x = -60 + camOffsetX;
         light2.position.x = 60 + camOffsetX;
@@ -287,7 +302,7 @@ function animate() {
         light1.target.position.z = light2.target.position.z = camera.position.z - 3000;
     }
 
-    dist = Math.floor(camera.position.z / road.stepZ);
+    dist = Math.floor(camera.position.z / slabs.h);
 
     if (dist < prev_dist) {
         progress++;
