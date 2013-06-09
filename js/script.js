@@ -4,25 +4,28 @@ var composer, renderPass, copyPass;
 
 var light1, light2;
 
-var effects = true;
+var effects = false;
 
 var slabs = {
     slabs: [],
+    w: 1500,
+    h: 300,
     count: 750,
-    texture_count: 3,
+    texture_path: 'img2',
+    texture_count: 7,
     geometry: null,
     materials: {}
 };
 
 var cam = {
-    rotateX: -0.15,
-    posY: 100
+    rotateX: -Math.PI/64,
+    posY: 150
 };
 
 var road = {
     y: 0,
     z: 0,
-    stepZ: 125,
+    stepZ: slabs.h,
     speed: 80
 };
 
@@ -80,13 +83,13 @@ function init() {
 
     scene.add(new THREE.AmbientLight(0xffffff));
 
-    light1 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light1 = new THREE.SpotLight(0xffffff, 40, 3000);
     light1.target.position.x = -400;
     light1.target.position.y = 50;
     light1.exponent = 150;
     scene.add(light1);
 
-    light2 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light2 = new THREE.SpotLight(0xffffff, 40, 3000);
     light2.target.position.x = 400;
     light2.target.position.y = 50;
     light2.exponent = 150;
@@ -104,18 +107,27 @@ function init() {
 
     for (var i = 0; i < slabs.texture_count; i++) {
         var slab_material = new THREE.MeshPhongMaterial({
-            ambient: 0x333333,
+            ambient: 0x222222,
             shading: THREE.SmoothShading,
-            map: THREE.ImageUtils.loadTexture('img/slab'+i+'.png')
+            map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.png')
         });
         slab_material.map.needsUpdate = true;
         slabs.materials[i] = slab_material;
     }
 
-    slabs.geometry = new THREE.PlaneGeometry(1500, 125);
+    slabs.geometry = new THREE.PlaneGeometry(slabs.w, slabs.h);
 
+    var n = 0;
+    var nn = random(3, 15);
     for (var i = 0; i < slabs.count; i++) {
-        render_slab();
+        t = 0;
+        if (n === nn) {
+            n = 0;
+            nn = random(3, 15);
+            t = random(1, slabs.texture_count-1);
+        }
+        render_slab(slabs.materials[t]);
+        n++;
     }
     position_slabs();
 
@@ -147,22 +159,12 @@ function init() {
     }
 }
 
-var slab_material_i = 0;
-
-function render_slab() {
-    if (slab_material_i > slabs.texture_count-1) {
-        slab_material_i = 0;
-    }
-
-    var material = slabs.materials[slab_material_i];
-
+function render_slab(material) {
     var slab = new THREE.Mesh(slabs.geometry, material);
     slab.doubleSided = true;
     slab.rotation.x = -Math.PI/2;
     slabs.slabs.push(slab);
     scene.add(slab);
-
-    slab_material_i++;
 }
 
 function position_slabs() {
@@ -249,7 +251,7 @@ function animate() {
         light1.position.x = -60 + camOffsetX;
         light2.position.x = 60 + camOffsetX;
         light1.position.y = light2.position.y = 50 + camOffsetY;
-        light1.position.z = light2.position.z = camera.position.z - 00;
+        light1.position.z = light2.position.z = camera.position.z + 0;
         light1.target.position.z = light2.target.position.z = camera.position.z - 3000;
     }
 
