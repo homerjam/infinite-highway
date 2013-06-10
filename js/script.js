@@ -23,10 +23,11 @@ var effects = true;
 var slabs = {
     slabs: [],
     w: 1500,
-    h: 300,
+    h: 1500,
     count: 750,
-    texture_path: 'img2',
-    texture_count: 7,
+    texture_path: 'img3',
+    texture_format: 'jpg',
+    texture_count: 1,
     geometry: null,
     materials: {}
 };
@@ -130,9 +131,10 @@ function init() {
 
     for (var i = 0; i < slabs.texture_count; i++) {
         var slab_material = new THREE.MeshPhongMaterial({
-            ambient: 0x444444,
+            ambient: 0x333333,
+            specular: 0x000000,
             shading: THREE.SmoothShading,
-            map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.png')
+            map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.'+slabs.texture_format)
         });
         slab_material.map.needsUpdate = true;
         slabs.materials[i] = slab_material;
@@ -147,7 +149,7 @@ function init() {
         if (n === nn) {
             n = 0;
             nn = random(5, 20);
-            t = random(1, slabs.texture_count-1);
+            t = random(0, slabs.texture_count-1);
         }
 
         var slab = new THREE.Mesh(slabs.geometry, slabs.materials[t]);
