@@ -130,7 +130,7 @@ function init() {
 
     for (var i = 0; i < slabs.texture_count; i++) {
         var slab_material = new THREE.MeshPhongMaterial({
-            ambient: 0x222222,
+            ambient: 0x444444,
             shading: THREE.SmoothShading,
             map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.png')
         });
@@ -164,9 +164,10 @@ function init() {
 
     lines.material = new THREE.MeshPhongMaterial({
         color: 0xffff00,
-        ambient: 0x222222,
-        shading: THREE.SmoothShading
-//        map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.png')
+        specular: 0xffff00,
+        ambient: 0x444444,
+        shading: THREE.SmoothShading,
+        map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg')
     });
     lines.geometry = new THREE.PlaneGeometry(lines.w, lines.h);
     for (var i = 0; i < lines.count; i++) {
