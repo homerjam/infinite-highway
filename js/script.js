@@ -22,9 +22,10 @@ var effects = true;
 
 var slabs = {
     slabs: [],
+    y: 0,
     w: 1500,
     h: 1500,
-    count: 750,
+    count: 300,
     texture_path: 'img3',
     texture_format: 'jpg',
     texture_count: 1,
@@ -34,8 +35,9 @@ var slabs = {
 
 var lines = {
     lines: [],
+    y: 1,
     w: 30,
-    h: 800,
+    h: 750,
     count: 300,
     geometry: null
 };
@@ -46,8 +48,6 @@ var cam = {
 };
 
 var road = {
-    y: 0,
-    z: 0,
     speed: options.road_speed,
     speedFluc: 0.2,
     speedFlucMax: 20
@@ -155,8 +155,8 @@ function init() {
         var slab = new THREE.Mesh(slabs.geometry, slabs.materials[t]);
         slab.doubleSided = true;
         slab.rotation.x = -Math.PI/2;
-        slab.position.y = road.y;
-        slab.position.z = road.z - (i * slabs.h);
+        slab.position.y = slabs.y;
+        slab.position.z = 0 - (i * slabs.h);
         slabs.slabs.push(slab);
         scene.add(slab);
 
@@ -176,7 +176,7 @@ function init() {
         var line = new THREE.Mesh(lines.geometry, lines.material);
         line.doubleSided = true;
         line.rotation.x = -Math.PI/2;
-        line.position.y = 1;
+        line.position.y = lines.y;
         line.position.z = 0 - (i * (lines.h * 2));
         lines.lines.push(line);
         scene.add(line);
@@ -202,13 +202,15 @@ function init() {
         composer.addPass(vignettePass);
 
         focusPass = new THREE.ShaderPass(THREE.FocusShader);
-        focusPass.uniforms.sampleDistance.value = 0.5;
-        focusPass.uniforms.waveFactor.value = 0.0025;
+        focusPass.uniforms.sampleDistance.value = 0.15;
+        focusPass.uniforms.waveFactor.value = 0.001;
         composer.addPass(focusPass);
 
         composer.addPass(copyPass);
         copyPass.renderToScreen = true;
     }
+
+    tweak_focus(true);
 }
 
 var progress = 0;
@@ -310,7 +312,7 @@ function animate() {
     if (dist < prev_dist) {
         progress++;
 
-        if (progress > 500) {
+        if (progress > Math.floor(slabs.count * 0.8)) {
             console.log('loop');
             progress = prev_dist = 0;
             camera.position.z = 0;
@@ -325,6 +327,27 @@ function animate() {
     } else {
         renderer.render(scene, camera);
     }
+}
+
+function tweak_focus(_on) {
+    setTimeout(function(){
+        var tweak_int = setInterval(function(){
+            if (_on) {
+                focusPass.uniforms.waveFactor.value += 0.01;
+            } else {
+                focusPass.uniforms.waveFactor.value -= 0.01;
+            }
+
+            if (focusPass.uniforms.waveFactor.value >= 0.1) {
+                _on = false;
+            } else if (focusPass.uniforms.waveFactor.value <= 0.001) {
+                clearInterval(tweak_int);
+            }
+        }, 100);
+
+        tweak_focus(true);
+
+    }, random(10000, 40000));
 }
 
 function random(from, to) {
