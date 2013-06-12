@@ -67,6 +67,13 @@ var swing = {
     maxY: 10
 };
 
+var potholes = {
+    potholes: [],
+    textures: [
+        {filename: 'pothole0.jpg', w: 1657, h:1110}
+    ]
+};
+
 window.addEventListener('load', function(){
     init();
     animate();
@@ -107,13 +114,13 @@ function init() {
 
     scene.add(new THREE.AmbientLight(0xffffff));
 
-    light1 = new THREE.SpotLight(0xffffff, 40, 3000);
+    light1 = new THREE.SpotLight(0xffffff, 50, 3000);
     light1.target.position.x = -400;
     light1.target.position.y = 50;
     light1.exponent = 150;
     scene.add(light1);
 
-    light2 = new THREE.SpotLight(0xffffff, 40, 3000);
+    light2 = new THREE.SpotLight(0xffffff, 50, 3000);
     light2.target.position.x = 400;
     light2.target.position.y = 50;
     light2.exponent = 150;
@@ -131,7 +138,7 @@ function init() {
 
     for (var i = 0; i < slabs.texture_count; i++) {
         var slab_material = new THREE.MeshPhongMaterial({
-            ambient: 0x333333,
+            ambient: 0x444444,
             specular: 0x000000,
             shading: THREE.SmoothShading,
             map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.'+slabs.texture_format)
@@ -211,6 +218,8 @@ function init() {
     }
 
     tweak_focus(true);
+
+    generate_pothole();
 }
 
 var progress = 0;
@@ -348,6 +357,37 @@ function tweak_focus(_on) {
         tweak_focus(true);
 
     }, random(10000, 40000));
+}
+
+function generate_pothole() {
+    setTimeout(function(){
+        console.log("generate_pothole");
+
+        var texture = potholes.textures[random(0, potholes.textures.length - 1)];
+
+        var pothole_material = new THREE.MeshPhongMaterial({
+            ambient: 0x444444,
+            specular: 0x000000,
+            shading: THREE.SmoothShading,
+            map: THREE.ImageUtils.loadTexture('img/'+texture.filename)
+        });
+
+        pothole_geometry = new THREE.PlaneGeometry((texture.w / 2), (texture.h / 2));
+
+        var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
+
+        pothole.rotation.x = -Math.PI/2;
+
+        pothole.position.x = random( (-slabs.w/2) - (texture.w/2), slabs.w - (texture.w/2) );
+        pothole.position.y = 1;
+        pothole.position.z = camera.position.z - 6000;
+
+        potholes.potholes.push(pothole);
+        scene.add(pothole);
+
+        generate_pothole();
+
+    }, random(5000, 20000));
 }
 
 function random(from, to) {
