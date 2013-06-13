@@ -35,7 +35,7 @@ var slabs = {
 
 var lines = {
     lines: [],
-    y: 1,
+    y: 2,
     w: 30,
     h: 750,
     count: 300,
@@ -69,8 +69,9 @@ var swing = {
 
 var potholes = {
     potholes: [],
+    y: 1,
     textures: [
-        {filename: 'pothole0.jpg', w: 1657, h:1110}
+        {filename: 'pothole0.jpg', w: 1100, h: 1400}
     ]
 };
 
@@ -215,9 +216,9 @@ function init() {
 
         composer.addPass(copyPass);
         copyPass.renderToScreen = true;
-    }
 
-    tweak_focus(true);
+        tweak_focus(true);
+    }
 
     generate_pothole();
 }
@@ -361,33 +362,51 @@ function tweak_focus(_on) {
 
 function generate_pothole() {
     setTimeout(function(){
-        console.log("generate_pothole");
+        cleanup_potholes();
 
-        var texture = potholes.textures[random(0, potholes.textures.length - 1)];
+        if (potholes.potholes.length < 10) {
+            console.log("generate_pothole");
 
-        var pothole_material = new THREE.MeshPhongMaterial({
-            ambient: 0x444444,
-            specular: 0x000000,
-            shading: THREE.SmoothShading,
-            map: THREE.ImageUtils.loadTexture('img/'+texture.filename)
-        });
+            var texture = potholes.textures[random(0, potholes.textures.length - 1)];
 
-        pothole_geometry = new THREE.PlaneGeometry((texture.w / 2), (texture.h / 2));
+            var pothole_material = new THREE.MeshPhongMaterial({
+                ambient: 0x444444,
+                specular: 0x000000,
+                shading: THREE.SmoothShading,
+                map: THREE.ImageUtils.loadTexture('img/'+texture.filename)
+            });
 
-        var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
+            var pothole_scale = random(2, 6);
 
-        pothole.rotation.x = -Math.PI/2;
+            pothole_geometry = new THREE.PlaneGeometry((texture.w / pothole_scale), (texture.h / pothole_scale));
 
-        pothole.position.x = random( (-slabs.w/2) - (texture.w/2), slabs.w - (texture.w/2) );
-        pothole.position.y = 1;
-        pothole.position.z = camera.position.z - 6000;
+            var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
 
-        potholes.potholes.push(pothole);
-        scene.add(pothole);
+            pothole.rotation.x = -Math.PI/2;
+
+            pothole.position.x = random(-slabs.w, slabs.w - texture.w);
+            pothole.position.y = potholes.y;
+            pothole.position.z = camera.position.z - 6000;
+
+            potholes.potholes.push(pothole);
+            scene.add(pothole);
+        }
 
         generate_pothole();
 
-    }, random(5000, 20000));
+    }, random(500, 2000));
+}
+
+function cleanup_potholes() {
+    for (var i = potholes.potholes.length-1; i > -1; i--) {
+        var pothole = potholes.potholes[i];
+        if (pothole !== undefined) {
+            if (pothole.position.z < camera.position.z) {
+                potholes.potholes.splice(i, 1);
+                scene.remove(pothole);
+            }
+        }
+    }
 }
 
 function random(from, to) {
