@@ -71,7 +71,7 @@ var potholes = {
     potholes: [],
     y: 1,
     textures: [
-        {filename: 'pothole0.jpg', w: 1100, h: 1400}
+        {filename: 'pothole0.png', w: 1100, h: 1400, map: null}
     ]
 };
 
@@ -177,7 +177,9 @@ function init() {
         specular: 0xffff00,
         ambient: 0x444444,
         shading: THREE.SmoothShading,
-        map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg')
+        map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
+        transparent: true,
+        opacity: 0.8
     });
     lines.geometry = new THREE.PlaneGeometry(lines.w, lines.h);
     for (var i = 0; i < lines.count; i++) {
@@ -219,6 +221,8 @@ function init() {
 
         tweak_focus(true);
     }
+
+    load_potholes();
 
     generate_pothole();
 }
@@ -360,31 +364,40 @@ function tweak_focus(_on) {
     }, random(10000, 40000));
 }
 
+function load_potholes() {
+    for (var i in potholes.textures) {
+        potholes.textures[i].map = THREE.ImageUtils.loadTexture('img/'+potholes.textures[i].filename);
+    }
+}
+
 function generate_pothole() {
     setTimeout(function(){
         cleanup_potholes();
 
-        if (potholes.potholes.length < 10) {
-            console.log("generate_pothole");
-
+        if (potholes.potholes.length < 50) {
             var texture = potholes.textures[random(0, potholes.textures.length - 1)];
 
             var pothole_material = new THREE.MeshPhongMaterial({
                 ambient: 0x444444,
                 specular: 0x000000,
                 shading: THREE.SmoothShading,
-                map: THREE.ImageUtils.loadTexture('img/'+texture.filename)
+                map: texture.map,
+                transparent: true,
+                opacity: 0.8
             });
 
-            var pothole_scale = random(2, 6);
+            var pothole_scale = random(3, 6);
 
-            pothole_geometry = new THREE.PlaneGeometry((texture.w / pothole_scale), (texture.h / pothole_scale));
+            var pw = (texture.w / pothole_scale);
+            var ph = (texture.h / pothole_scale);
+            pothole_geometry = new THREE.PlaneGeometry(pw, ph);
 
             var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
 
             pothole.rotation.x = -Math.PI/2;
 
-            pothole.position.x = random(-slabs.w, slabs.w - texture.w);
+            var px = random( -((slabs.w*.5) + pw) , (slabs.w*.5) - pw );
+            pothole.position.x = px;
             pothole.position.y = potholes.y;
             pothole.position.z = camera.position.z - 6000;
 
@@ -401,7 +414,7 @@ function cleanup_potholes() {
     for (var i = potholes.potholes.length-1; i > -1; i--) {
         var pothole = potholes.potholes[i];
         if (pothole !== undefined) {
-            if (pothole.position.z < camera.position.z) {
+            if (pothole.position.z < camera.position.z - 5000) {
                 potholes.potholes.splice(i, 1);
                 scene.remove(pothole);
             }
