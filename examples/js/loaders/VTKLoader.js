@@ -8,11 +8,6 @@ THREE.VTKLoader.prototype = {
 
 	constructor: THREE.VTKLoader,
 
-	addEventListener: THREE.EventDispatcher.prototype.addEventListener,
-	hasEventListener: THREE.EventDispatcher.prototype.hasEventListener,
-	removeEventListener: THREE.EventDispatcher.prototype.removeEventListener,
-	dispatchEvent: THREE.EventDispatcher.prototype.dispatchEvent,
-
 	load: function ( url, callback ) {
 
 		var scope = this;
@@ -49,21 +44,15 @@ THREE.VTKLoader.prototype = {
 
 		var geometry = new THREE.Geometry();
 
-		function vertex( x, y, z ) {
+		var vertex = function ( x, y, z ) {
 
 			geometry.vertices.push( new THREE.Vector3( x, y, z ) );
 
 		}
 
-		function face3( a, b, c ) {
+		var face3 = function ( a, b, c ) {
 
 			geometry.faces.push( new THREE.Face3( a, b, c ) );
-
-		}
-
-		function face4( a, b, c, d ) {
-
-			geometry.faces.push( new THREE.Face4( a, b, c, d ) );
 
 		}
 
@@ -73,7 +62,7 @@ THREE.VTKLoader.prototype = {
 
 		pattern = /([\+|\-]?[\d]+[\.][\d|\-|e]+)[ ]+([\+|\-]?[\d]+[\.][\d|\-|e]+)[ ]+([\+|\-]?[\d]+[\.][\d|\-|e]+)/g;
 
-		while ( ( result = pattern.exec( data ) ) != null ) {
+		while ( ( result = pattern.exec( data ) ) !== null ) {
 
 			// ["1.0 2.0 3.0", "1.0", "2.0", "3.0"]
 
@@ -85,7 +74,7 @@ THREE.VTKLoader.prototype = {
 
 		pattern = /3[ ]+([\d]+)[ ]+([\d]+)[ ]+([\d]+)/g;
 
-		while ( ( result = pattern.exec( data ) ) != null ) {
+		while ( ( result = pattern.exec( data ) ) !== null ) {
 
 			// ["3 1 2 3", "1", "2", "3"]
 
@@ -97,11 +86,12 @@ THREE.VTKLoader.prototype = {
 
 		pattern = /4[ ]+([\d]+)[ ]+([\d]+)[ ]+([\d]+)[ ]+([\d]+)/g;
 
-		while ( ( result = pattern.exec( data ) ) != null ) {
+		while ( ( result = pattern.exec( data ) ) !== null ) {
 
 			// ["4 1 2 3 4", "1", "2", "3", "4"]
 
-			face4( parseInt( result[ 1 ] ), parseInt( result[ 2 ] ), parseInt( result[ 3 ] ), parseInt( result[ 4 ] ) );
+			face3( parseInt( result[ 1 ] ), parseInt( result[ 2 ] ), parseInt( result[ 4 ] ) );
+			face3( parseInt( result[ 2 ] ), parseInt( result[ 3 ] ), parseInt( result[ 4 ] ) );
 
 		}
 
@@ -115,3 +105,5 @@ THREE.VTKLoader.prototype = {
 	}
 
 };
+
+THREE.EventDispatcher.prototype.apply( THREE.VTKLoader.prototype );

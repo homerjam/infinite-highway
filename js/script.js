@@ -1,3 +1,6 @@
+var effects = true;
+var controls_enabled = false;
+
 var options = {
     road_speed: 100
 };
@@ -12,13 +15,11 @@ $.fn.ready(function(){
 
 });
 
-var camera, scene, renderer, controls, controls_enabled = false;
+var camera, scene, renderer, controls;
 
 var composer, renderPass, copyPass;
 
 var light1, light2;
-
-var effects = true;
 
 var slabs = {
     slabs: [],
@@ -75,6 +76,8 @@ var potholes = {
     ]
 };
 
+var group, material, textGeo, textMesh1;
+
 window.addEventListener('load', function(){
     init();
     animate();
@@ -94,8 +97,8 @@ function init() {
     camera.position.z = 0;
     camera.setLens(35);
 
-    controls = new THREE.TrackballControls( camera );
-    controls.target.set( 0, 0, 0 );
+    controls = new THREE.TrackballControls(camera);
+    controls.target.set(0, 0, 0);
 
     controls.rotateSpeed = 1.0;
     controls.zoomSpeed = 1.2;
@@ -104,10 +107,12 @@ function init() {
     controls.noZoom = false;
     controls.noPan = false;
 
-    controls.staticMoving = false;
-    controls.dynamicDampingFactor = 0.15;
+    controls.staticMoving = true;
+    controls.dynamicDampingFactor = 0.3;
 
-    controls.keys = [ 65, 83, 68 ];
+    controls.keys = [65, 83, 68];
+
+    controls.addEventListener('change', render);
 
     scene = new THREE.Scene();
 
@@ -193,6 +198,40 @@ function init() {
     }
 
 
+    group = new THREE.Object3D();
+    group.position.y = 100;
+    scene.add(group);
+
+    textGeo = new THREE.TextGeometry("Hello World", {
+        size: 50,
+        height: 30,
+        curveSegments: 4,
+        font: "helvetiker",
+        weight: "normal",
+        style: "normal",
+        material: 0,
+        extrudeMaterial: 1
+    });
+
+    textGeo.computeBoundingBox();
+    textGeo.computeVertexNormals();
+
+    var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+    material = new THREE.MeshFaceMaterial([
+        new THREE.MeshPhongMaterial({color: 0xffff00, shading: THREE.FlatShading}), // front
+        new THREE.MeshPhongMaterial({color: 0xffff00, shading: THREE.SmoothShading}) // side
+    ]);
+
+    textMesh1 = new THREE.Mesh(textGeo, material);
+    textMesh1.position.x = centerOffset;
+    textMesh1.position.y = 30;
+    textMesh1.position.z = -25000;
+    textMesh1.rotation.x = 0;
+    textMesh1.rotation.y = Math.PI * 2;
+    group.add(textMesh1);
+
+
     renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setClearColor( scene.fog.color, 1 );
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -242,70 +281,71 @@ var speedFluc, camSpeedFluc = 0, speedFluc_target = 0;
 function animate() {
     requestAnimationFrame(animate);
 
-    if (camOffsetX < camOffsetX_target && swayX === 'right') {
-        camOffsetX += sway.speedX;
-    } else if (camOffsetX > camOffsetX_target && swayX === 'left') {
-        camOffsetX -= sway.speedX;
-    } else if (swayX === 'right') {
-        camOffsetX_target = -random(0, sway.maxX);
-        swayX = 'left';
-    } else {
-        camOffsetX_target = random(0, sway.maxX);
-        swayX = 'right';
-    }
-
-    if (camOffsetY < camOffsetY_target && swayY === 'up') {
-        camOffsetY += sway.speedY;
-    } else if (camOffsetY > camOffsetY_target && swayY === 'down') {
-        camOffsetY -= sway.speedY;
-    } else if (swayY === 'up') {
-        camOffsetY_target = -random(0, sway.maxY);
-        swayY = 'down';
-    } else {
-        camOffsetY_target = random(0, sway.maxY);
-        swayY = 'up';
-    }
-
-    if (camSwingX < camSwingX_target && swingX === 'up') {
-        camSwingX += swing.speedX;
-    } else if (camSwingX > camSwingX_target && swingX === 'down') {
-        camSwingX -= swing.speedX;
-    } else if (swingX === 'up') {
-        camSwingX_target = -random(0, swing.maxX);
-        swingX = 'down';
-    } else {
-        camSwingX_target = random(0, swing.maxX);
-        swingX = 'up';
-    }
-
-    if (camSwingY < camSwingY_target && swingY === 'right') {
-        camSwingY += swing.speedY;
-    } else if (camSwingY > camSwingY_target && swingY === 'left') {
-        camSwingY -= swing.speedY;
-    } else if (swingY === 'right') {
-        camSwingY_target = -random(0, swing.maxY);
-        swingY = 'left';
-    } else {
-        camSwingY_target = random(0, swing.maxY);
-        swingY = 'right';
-    }
-
-    if (camSpeedFluc < speedFluc_target && speedFluc === 'faster') {
-        camSpeedFluc += road.speedFluc;
-    } else if (camSpeedFluc > speedFluc_target && speedFluc === 'slower') {
-        camSpeedFluc -= road.speedFluc;
-    } else if (speedFluc === 'faster') {
-        speedFluc_target = -random(0, road.speedFlucMax);
-        speedFluc = 'slower';
-    } else {
-        speedFluc_target = random(0, road.speedFlucMax);
-        speedFluc = 'faster';
-    }
-
     if (controls_enabled) {
         controls.update();
 
     } else {
+
+        if (camOffsetX < camOffsetX_target && swayX === 'right') {
+            camOffsetX += sway.speedX;
+        } else if (camOffsetX > camOffsetX_target && swayX === 'left') {
+            camOffsetX -= sway.speedX;
+        } else if (swayX === 'right') {
+            camOffsetX_target = -random(0, sway.maxX);
+            swayX = 'left';
+        } else {
+            camOffsetX_target = random(0, sway.maxX);
+            swayX = 'right';
+        }
+
+        if (camOffsetY < camOffsetY_target && swayY === 'up') {
+            camOffsetY += sway.speedY;
+        } else if (camOffsetY > camOffsetY_target && swayY === 'down') {
+            camOffsetY -= sway.speedY;
+        } else if (swayY === 'up') {
+            camOffsetY_target = -random(0, sway.maxY);
+            swayY = 'down';
+        } else {
+            camOffsetY_target = random(0, sway.maxY);
+            swayY = 'up';
+        }
+
+        if (camSwingX < camSwingX_target && swingX === 'up') {
+            camSwingX += swing.speedX;
+        } else if (camSwingX > camSwingX_target && swingX === 'down') {
+            camSwingX -= swing.speedX;
+        } else if (swingX === 'up') {
+            camSwingX_target = -random(0, swing.maxX);
+            swingX = 'down';
+        } else {
+            camSwingX_target = random(0, swing.maxX);
+            swingX = 'up';
+        }
+
+        if (camSwingY < camSwingY_target && swingY === 'right') {
+            camSwingY += swing.speedY;
+        } else if (camSwingY > camSwingY_target && swingY === 'left') {
+            camSwingY -= swing.speedY;
+        } else if (swingY === 'right') {
+            camSwingY_target = -random(0, swing.maxY);
+            swingY = 'left';
+        } else {
+            camSwingY_target = random(0, swing.maxY);
+            swingY = 'right';
+        }
+
+        if (camSpeedFluc < speedFluc_target && speedFluc === 'faster') {
+            camSpeedFluc += road.speedFluc;
+        } else if (camSpeedFluc > speedFluc_target && speedFluc === 'slower') {
+            camSpeedFluc -= road.speedFluc;
+        } else if (speedFluc === 'faster') {
+            speedFluc_target = -random(0, road.speedFlucMax);
+            speedFluc = 'slower';
+        } else {
+            speedFluc_target = random(0, road.speedFlucMax);
+            speedFluc = 'faster';
+        }
+
         camera.position.x = camOffsetX;
         camera.position.y = cam.posY + camOffsetY;
 
@@ -319,28 +359,36 @@ function animate() {
         light1.position.y = light2.position.y = 50 + camOffsetY;
         light1.position.z = light2.position.z = camera.position.z + 0;
         light1.target.position.z = light2.target.position.z = camera.position.z - 3000;
-    }
 
-    dist = Math.floor(camera.position.z / slabs.h);
+        dist = Math.floor(camera.position.z / slabs.h);
 
-    if (dist < prev_dist) {
-        progress++;
+        if (dist < prev_dist) {
+            progress++;
 
-        if (progress > Math.floor(slabs.count * 0.8)) {
-            console.log('loop');
-            progress = prev_dist = 0;
-            camera.position.z = 0;
+            if (progress > Math.floor(slabs.count * 0.8)) {
+                console.log('loop');
+                progress = prev_dist = 0;
+                camera.position.z = 0;
 
+            } else {
+                prev_dist = dist;
+            }
+        }
+
+        if (textMesh1.position.z >= camera.position.z - 1000) {
+            textMesh1.position.z = camera.position.z - 1000;
+        }
+
+        if (effects) {
+            composer.render(0.1);
         } else {
-            prev_dist = dist;
+            render();
         }
     }
+}
 
-    if (effects) {
-        composer.render(0.1);
-    } else {
-        renderer.render(scene, camera);
-    }
+function render() {
+    renderer.render(scene, camera);
 }
 
 function tweak_focus(_on) {
