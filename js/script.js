@@ -1,3 +1,13 @@
+/*
+ * TODO: group slabs into road by adding to Object3D
+ *      then move road instead of camera
+ *
+ *      or
+ *
+ *      continue to offset text to match camera but increase offset
+ *      by calculating the perspective difference
+ */
+
 var effects = true;
 var controls_enabled = false;
 
@@ -227,7 +237,6 @@ function init() {
     textMesh1.position.x = centerOffset;
     textMesh1.position.y = 30;
     textMesh1.position.z = -25000;
-    textMesh1.rotation.x = 0;
     textMesh1.rotation.y = Math.PI * 2;
     group.add(textMesh1);
 
@@ -377,6 +386,11 @@ function animate() {
 
         if (textMesh1.position.z >= camera.position.z - 1000) {
             textMesh1.position.z = camera.position.z - 1000;
+
+            var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+            textMesh1.position.x = centerOffset + camOffsetX;
+            textMesh1.position.y = 30 + camOffsetY;
         }
 
         if (effects) {
