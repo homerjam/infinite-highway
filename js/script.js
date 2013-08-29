@@ -1,13 +1,3 @@
-/*
- * TODO: group slabs into road by adding to Object3D
- *      then move road instead of camera
- *
- *      or
- *
- *      continue to offset text to match camera but increase offset
- *      by calculating the perspective difference
- */
-
 var effects = true;
 var controls_enabled = false;
 
@@ -44,6 +34,8 @@ var slabs = {
     materials: {}
 };
 
+var linesGroup;
+
 var lines = {
     lines: [],
     y: 2,
@@ -58,24 +50,26 @@ var cam = {
     posY: 150
 };
 
+var roadGroup;
+
 var road = {
     speed: options.road_speed,
-    speedFluc: 0.2,
-    speedFlucMax: 20
+    speedIncrement: 2,
+    speedDirectionMax: 50
 };
 
 var sway = {
-    speedX: 0.4,
-    maxX: 30,
-    speedY: 0.5,
-    maxY: 10
+    speedX: 0.3,
+    maxX: 40,
+    speedY: 0.3,
+    maxY: 20
 };
 
 var swing = {
-    speedX: 0.5,
-    maxX: 10,
-    speedY: 0.5,
-    maxY: 10
+    speedX: 0.1,
+    maxX: 20,
+    speedY: 0.2,
+    maxY: 20
 };
 
 var potholes = {
@@ -142,6 +136,12 @@ function init() {
     light2.exponent = 150;
     scene.add(light2);
 
+    light1.position.x = -60;
+    light2.position.x = 60;
+    light1.position.y = light2.position.y = 50;
+    light1.position.z = light2.position.z = 0;
+    light1.target.position.z = light2.target.position.z = -3000;
+
     var sphere = new THREE.SphereGeometry(10, 16, 8);
 
 //    var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
@@ -165,13 +165,21 @@ function init() {
 
     slabs.geometry = new THREE.PlaneGeometry(slabs.w, slabs.h);
 
+    roadGroup = new THREE.Object3D();
+
+    var randomTextureInt = function(){
+        return random(3, 15);
+    };
+
     var n = 0;
-    var nn = random(3, 15);
+    var tI = randomTextureInt();
+
     for (var i = 0; i < slabs.count; i++) {
         t = 0;
-        if (n === nn) {
+
+        if (n === tI) {
             n = 0;
-            nn = random(5, 20);
+            tI = randomTextureInt();
             t = random(0, slabs.texture_count-1);
         }
 
@@ -181,11 +189,14 @@ function init() {
         slab.position.y = slabs.y;
         slab.position.z = 0 - (i * slabs.h);
         slabs.slabs.push(slab);
-        scene.add(slab);
+        roadGroup.add(slab);
 
         n++;
     }
 
+    scene.add(roadGroup);
+
+    linesGroup = new THREE.Object3D();
 
     lines.material = new THREE.MeshPhongMaterial({
         color: 0xffff00,
@@ -196,7 +207,9 @@ function init() {
         transparent: true,
         opacity: 0.8
     });
+
     lines.geometry = new THREE.PlaneGeometry(lines.w, lines.h);
+
     for (var i = 0; i < lines.count; i++) {
         var line = new THREE.Mesh(lines.geometry, lines.material);
         line.doubleSided = true;
@@ -204,13 +217,11 @@ function init() {
         line.position.y = lines.y;
         line.position.z = 0 - (i * (lines.h * 2));
         lines.lines.push(line);
-        scene.add(line);
+        linesGroup.add(line);
     }
 
+    roadGroup.add(linesGroup);
 
-    group = new THREE.Object3D();
-    group.position.y = 100;
-    scene.add(group);
 
     textGeo = new THREE.TextGeometry("Hello World", {
         size: 50,
@@ -235,10 +246,10 @@ function init() {
 
     textMesh1 = new THREE.Mesh(textGeo, material);
     textMesh1.position.x = centerOffset;
-    textMesh1.position.y = 30;
-    textMesh1.position.z = -25000;
+    textMesh1.position.y = 130;
+    textMesh1.position.z = -1000;
     textMesh1.rotation.y = Math.PI * 2;
-    group.add(textMesh1);
+    scene.add(textMesh1);
 
 
     renderer = new THREE.WebGLRenderer({antialias: true});
@@ -279,13 +290,13 @@ var progress = 0;
 
 var dist = 0, prev_dist = 0;
 
-var swayX, camOffsetX = 0, camOffsetX_target = 0;
-var swayY, camOffsetY = 0, camOffsetY_target = 0;
+var swayDirectionX, swayOffsetX = 0, swayOffsetTargetX = 0;
+var swayDirectionY, swayOffsetY = 0, swayOffsetTargetY = 0;
 
-var swingX, camSwingX = 0, camSwingX_target = 0;
-var swingY, camSwingY = 0, camSwingY_target = 0;
+var swingDirectionX, swingOffsetX = 0, swingOffsetTargetX = 0;
+var swingDirectionY, swingOffsetY = 0, swingOffsetTargetY = 0;
 
-var speedFluc, camSpeedFluc = 0, speedFluc_target = 0;
+var speedDirection, speedOffset = 0, speedTarget = 0;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -295,103 +306,97 @@ function animate() {
 
     } else {
 
-        if (camOffsetX < camOffsetX_target && swayX === 'right') {
-            camOffsetX += sway.speedX;
-        } else if (camOffsetX > camOffsetX_target && swayX === 'left') {
-            camOffsetX -= sway.speedX;
-        } else if (swayX === 'right') {
-            camOffsetX_target = -random(0, sway.maxX);
-            swayX = 'left';
+        if (swayOffsetX < swayOffsetTargetX && swayDirectionX === 'right') {
+            swayOffsetX += sway.speedX;
+        } else if (swayOffsetX > swayOffsetTargetX && swayDirectionX === 'left') {
+            swayOffsetX -= sway.speedX;
+        } else if (swayDirectionX === 'right') {
+            swayOffsetTargetX = -random(0, sway.maxX);
+            swayDirectionX = 'left';
         } else {
-            camOffsetX_target = random(0, sway.maxX);
-            swayX = 'right';
+            swayOffsetTargetX = random(0, sway.maxX);
+            swayDirectionX = 'right';
         }
 
-        if (camOffsetY < camOffsetY_target && swayY === 'up') {
-            camOffsetY += sway.speedY;
-        } else if (camOffsetY > camOffsetY_target && swayY === 'down') {
-            camOffsetY -= sway.speedY;
-        } else if (swayY === 'up') {
-            camOffsetY_target = -random(0, sway.maxY);
-            swayY = 'down';
+        if (swayOffsetY < swayOffsetTargetY && swayDirectionY === 'up') {
+            swayOffsetY += sway.speedY;
+        } else if (swayOffsetY > swayOffsetTargetY && swayDirectionY === 'down') {
+            swayOffsetY -= sway.speedY;
+        } else if (swayDirectionY === 'up') {
+            swayOffsetTargetY = -random(0, sway.maxY);
+            swayDirectionY = 'down';
         } else {
-            camOffsetY_target = random(0, sway.maxY);
-            swayY = 'up';
+            swayOffsetTargetY = random(0, sway.maxY);
+            swayDirectionY = 'up';
         }
 
-        if (camSwingX < camSwingX_target && swingX === 'up') {
-            camSwingX += swing.speedX;
-        } else if (camSwingX > camSwingX_target && swingX === 'down') {
-            camSwingX -= swing.speedX;
-        } else if (swingX === 'up') {
-            camSwingX_target = -random(0, swing.maxX);
-            swingX = 'down';
+        if (swingOffsetX < swingOffsetTargetX && swingDirectionX === 'up') {
+            swingOffsetX += swing.speedX;
+        } else if (swingOffsetX > swingOffsetTargetX && swingDirectionX === 'down') {
+            swingOffsetX -= swing.speedX;
+        } else if (swingDirectionX === 'up') {
+            swingOffsetTargetX = -random(0, swing.maxX);
+            swingDirectionX = 'down';
         } else {
-            camSwingX_target = random(0, swing.maxX);
-            swingX = 'up';
+            swingOffsetTargetX = random(0, swing.maxX);
+            swingDirectionX = 'up';
         }
 
-        if (camSwingY < camSwingY_target && swingY === 'right') {
-            camSwingY += swing.speedY;
-        } else if (camSwingY > camSwingY_target && swingY === 'left') {
-            camSwingY -= swing.speedY;
-        } else if (swingY === 'right') {
-            camSwingY_target = -random(0, swing.maxY);
-            swingY = 'left';
+        if (swingOffsetY < swingOffsetTargetY && swingDirectionY === 'right') {
+            swingOffsetY += swing.speedY;
+        } else if (swingOffsetY > swingOffsetTargetY && swingDirectionY === 'left') {
+            swingOffsetY -= swing.speedY;
+        } else if (swingDirectionY === 'right') {
+            swingOffsetTargetY = -random(0, swing.maxY);
+            swingDirectionY = 'left';
         } else {
-            camSwingY_target = random(0, swing.maxY);
-            swingY = 'right';
+            swingOffsetTargetY = random(0, swing.maxY);
+            swingDirectionY = 'right';
         }
 
-        if (camSpeedFluc < speedFluc_target && speedFluc === 'faster') {
-            camSpeedFluc += road.speedFluc;
-        } else if (camSpeedFluc > speedFluc_target && speedFluc === 'slower') {
-            camSpeedFluc -= road.speedFluc;
-        } else if (speedFluc === 'faster') {
-            speedFluc_target = -random(0, road.speedFlucMax);
-            speedFluc = 'slower';
+        if (speedOffset < speedTarget && speedDirection === 'faster') {
+            speedOffset += road.speedIncrement;
+        } else if (speedOffset > speedTarget && speedDirection === 'slower') {
+            speedOffset -= road.speedIncrement;
+        } else if (speedDirection === 'faster') {
+            speedTarget = -random(0, road.speedIncrementMax);
+            speedDirection = 'slower';
         } else {
-            speedFluc_target = random(0, road.speedFlucMax);
-            speedFluc = 'faster';
+            speedTarget = random(0, road.speedIncrementMax);
+            speedDirection = 'faster';
         }
 
-        camera.position.x = camOffsetX;
-        camera.position.y = cam.posY + camOffsetY;
+        roadGroup.rotation.x = (swingOffsetX/100000);
+        roadGroup.rotation.y = (swingOffsetY/100000);
 
-        camera.rotation.x = cam.rotateX + (camSwingX/1000);
-        camera.rotation.y = camSwingY/1000;
+        roadGroup.position.x = swayOffsetX;
+        roadGroup.position.y = swayOffsetY;
 
-        camera.position.z -= road.speed + camSpeedFluc;
+        roadGroup.position.z += road.speed + speedOffset;
 
-        light1.position.x = -60 + camOffsetX;
-        light2.position.x = 60 + camOffsetX;
-        light1.position.y = light2.position.y = 50 + camOffsetY;
-        light1.position.z = light2.position.z = camera.position.z + 0;
-        light1.target.position.z = light2.target.position.z = camera.position.z - 3000;
+        dist = Math.floor(roadGroup.position.z / slabs.h);
 
-        dist = Math.floor(camera.position.z / slabs.h);
-
-        if (dist < prev_dist) {
+        if (dist > prev_dist) {
             progress++;
 
             if (progress > Math.floor(slabs.count * 0.8)) {
                 console.log('loop');
                 progress = prev_dist = 0;
-                camera.position.z = 0;
+                roadGroup.position.z = 0;
 
             } else {
                 prev_dist = dist;
             }
         }
 
-        if (textMesh1.position.z >= camera.position.z - 1000) {
-            textMesh1.position.z = camera.position.z - 1000;
-
-            var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-
-            textMesh1.position.x = centerOffset + camOffsetX;
-            textMesh1.position.y = 30 + camOffsetY;
-        }
+//        if (textMesh1.position.z >= camera.position.z - 1000) {
+//            textMesh1.position.z = camera.position.z - 1000;
+//
+//            var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+//
+//            textMesh1.position.x = centerOffset + swayOffsetX;
+//            textMesh1.position.y = 130 + swayOffsetY;
+//        }
 
         if (effects) {
             composer.render(0.1);
@@ -461,10 +466,10 @@ function generate_pothole() {
             var px = random( -((slabs.w*.5) + pw) , (slabs.w*.5) - pw );
             pothole.position.x = px;
             pothole.position.y = potholes.y;
-            pothole.position.z = camera.position.z - 6000;
+            pothole.position.z = -roadGroup.position.z - 6000;
 
             potholes.potholes.push(pothole);
-            scene.add(pothole);
+            roadGroup.add(pothole);
         }
 
         generate_pothole();
@@ -476,9 +481,9 @@ function cleanup_potholes() {
     for (var i = potholes.potholes.length-1; i > -1; i--) {
         var pothole = potholes.potholes[i];
         if (pothole !== undefined) {
-            if (pothole.position.z < camera.position.z - 5000) {
+            if (-roadGroup.position.z > pothole.position.z) {
                 potholes.potholes.splice(i, 1);
-                scene.remove(pothole);
+                roadGroup.remove(pothole);
             }
         }
     }
