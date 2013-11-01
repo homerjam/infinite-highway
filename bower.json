@@ -1,0 +1,21 @@
+{
+  "name": "losthighway.homerjam.es",
+  "version": "0.0.0",
+  "authors": [
+    "James Homer <jameshomer85@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "threejs": "*"
+  },
+  "devDependencies": {
+    "jquery": "~2.0.3"
+  }
+}

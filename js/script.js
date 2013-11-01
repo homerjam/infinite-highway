@@ -226,12 +226,13 @@ function init() {
     textGeo = new THREE.TextGeometry("Hello World", {
         size: 50,
         height: 30,
-        curveSegments: 4,
-        font: "helvetiker",
+        bevelEnabled: false,
+        // curveSegments: 4,
+        font: "boston traffic",
         weight: "normal",
         style: "normal",
-        material: 0,
-        extrudeMaterial: 1
+        // material: 0,
+        // extrudeMaterial: 1
     });
 
     textGeo.computeBoundingBox();
