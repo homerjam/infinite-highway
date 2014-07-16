@@ -1,4 +1,2 @@
 losthighway
 ===========
-
-losthighway.homerjam.es

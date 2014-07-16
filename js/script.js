@@ -5,12 +5,12 @@ var options = {
     road_speed: 100
 };
 
-$.fn.ready(function(){
+$.fn.ready(function() {
 
-    $(document).on('keydown', function(e){
-       if (e.keyCode === 32) {
-           road.speed = road.speed === 0 ? options.road_speed : 0;
-       }
+    $(document).on('keydown', function(e) {
+        if (e.keyCode === 32) {
+            road.speed = road.speed === 0 ? options.road_speed : 0;
+        }
     });
 
 });
@@ -75,19 +75,24 @@ var swing = {
 var potholes = {
     potholes: [],
     y: 1,
-    textures: [
-        {filename: 'pothole0.png', w: 1100, h: 1400, map: null}
-    ]
+    textures: [{
+        filename: 'pothole0.png',
+        w: 1100,
+        h: 1400,
+        map: null
+    }]
 };
+
+var euler = new THREE.Euler(-Math.PI/2, 0, 0, 'XYZ');
 
 var group, material, textGeo, textMesh1;
 
-window.addEventListener('load', function(){
+window.addEventListener('load', function() {
     init();
     animate();
 });
 
-window.addEventListener('resize', function(){
+window.addEventListener('resize', function() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
@@ -144,20 +149,22 @@ function init() {
 
     var sphere = new THREE.SphereGeometry(10, 16, 8);
 
-//    var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
-//    l1.position = light1.position;
-//    scene.add(l1);
-//
-//    var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
-//    l2.position = light2.position;
-//    scene.add(l2);
+    // var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
+    // l1.position = light1.position;
+    // scene.add(l1);
 
-    for (var i = 0; i < slabs.texture_count; i++) {
+    // var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
+    // l2.position = light2.position;
+    // scene.add(l2);
+
+    var i;
+
+    for (i = 0; i < slabs.texture_count; i++) {
         var slab_material = new THREE.MeshPhongMaterial({
             ambient: 0x444444,
             specular: 0x000000,
             shading: THREE.SmoothShading,
-            map: THREE.ImageUtils.loadTexture(slabs.texture_path+'/slab'+i+'.'+slabs.texture_format)
+            map: THREE.ImageUtils.loadTexture(slabs.texture_path + '/slab' + i + '.' + slabs.texture_format)
         });
         slab_material.map.needsUpdate = true;
         slabs.materials[i] = slab_material;
@@ -167,25 +174,27 @@ function init() {
 
     roadGroup = new THREE.Object3D();
 
-    var randomTextureInt = function(){
+    var randomTextureInt = function() {
         return random(3, 15);
     };
 
     var n = 0;
     var tI = randomTextureInt();
 
-    for (var i = 0; i < slabs.count; i++) {
+    for (i = 0; i < slabs.count; i++) {
         t = 0;
 
         if (n === tI) {
             n = 0;
             tI = randomTextureInt();
-            t = random(0, slabs.texture_count-1);
+            t = random(0, slabs.texture_count - 1);
         }
+
 
         var slab = new THREE.Mesh(slabs.geometry, slabs.materials[t]);
         slab.doubleSided = true;
         slab.rotation.x = -Math.PI/2;
+        // slab.position.applyEuler(euler);
         slab.position.y = slabs.y;
         slab.position.z = 0 - (i * slabs.h);
         slabs.slabs.push(slab);
@@ -210,10 +219,11 @@ function init() {
 
     lines.geometry = new THREE.PlaneGeometry(lines.w, lines.h);
 
-    for (var i = 0; i < lines.count; i++) {
+    for (i = 0; i < lines.count; i++) {
         var line = new THREE.Mesh(lines.geometry, lines.material);
         line.doubleSided = true;
         line.rotation.x = -Math.PI/2;
+        // line.position.applyEuler(euler);        
         line.position.y = lines.y;
         line.position.z = 0 - (i * (lines.h * 2));
         lines.lines.push(line);
@@ -241,8 +251,14 @@ function init() {
     var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
 
     material = new THREE.MeshFaceMaterial([
-        new THREE.MeshPhongMaterial({color: 0xffff00, shading: THREE.FlatShading}), // front
-        new THREE.MeshPhongMaterial({color: 0xffff00, shading: THREE.SmoothShading}) // side
+        new THREE.MeshPhongMaterial({
+            color: 0xffff00,
+            shading: THREE.FlatShading
+        }), // front
+        new THREE.MeshPhongMaterial({
+            color: 0xffff00,
+            shading: THREE.SmoothShading
+        }) // side
     ]);
 
     textMesh1 = new THREE.Mesh(textGeo, material);
@@ -253,8 +269,10 @@ function init() {
     scene.add(textMesh1);
 
 
-    renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setClearColor( scene.fog.color, 1 );
+    renderer = new THREE.WebGLRenderer({
+        antialias: true
+    });
+    renderer.setClearColor(scene.fog.color, 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMapEnabled = true;
 
@@ -289,15 +307,21 @@ function init() {
 
 var progress = 0;
 
-var dist = 0, prev_dist = 0;
+var dist = 0,
+    prev_dist = 0;
 
-var swayDirectionX, swayOffsetX = 0, swayOffsetTargetX = 0;
-var swayDirectionY, swayOffsetY = 0, swayOffsetTargetY = 0;
+var swayDirectionX, swayOffsetX = 0,
+    swayOffsetTargetX = 0;
+var swayDirectionY, swayOffsetY = 0,
+    swayOffsetTargetY = 0;
 
-var swingDirectionX, swingOffsetX = 0, swingOffsetTargetX = 0;
-var swingDirectionY, swingOffsetY = 0, swingOffsetTargetY = 0;
+var swingDirectionX, swingOffsetX = 0,
+    swingOffsetTargetX = 0;
+var swingDirectionY, swingOffsetY = 0,
+    swingOffsetTargetY = 0;
 
-var speedDirection, speedOffset = 0, speedTarget = 0;
+var speedDirection, speedOffset = 0,
+    speedTarget = 0;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -367,8 +391,12 @@ function animate() {
             speedDirection = 'faster';
         }
 
-        roadGroup.rotation.x = (swingOffsetX/100000);
-        roadGroup.rotation.y = (swingOffsetY/100000);
+        roadGroup.rotation.x = (swingOffsetX / 100000);
+        roadGroup.rotation.y = (swingOffsetY / 100000);
+
+        // var euler2 = new THREE.Euler( swingOffsetX / 100000, swingOffsetY / 100000, 0, 'XYZ' );
+        // roadGroup.position.applyEuler(euler2);
+
 
         roadGroup.position.x = swayOffsetX;
         roadGroup.position.y = swayOffsetY;
@@ -390,14 +418,14 @@ function animate() {
             }
         }
 
-//        if (textMesh1.position.z >= camera.position.z - 1000) {
-//            textMesh1.position.z = camera.position.z - 1000;
-//
-//            var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-//
-//            textMesh1.position.x = centerOffset + swayOffsetX;
-//            textMesh1.position.y = 130 + swayOffsetY;
-//        }
+        // if (textMesh1.position.z >= camera.position.z - 1000) {
+        //     textMesh1.position.z = camera.position.z - 1000;
+
+        //     var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+        //     textMesh1.position.x = centerOffset + swayOffsetX;
+        //     textMesh1.position.y = 130 + swayOffsetY;
+        // }
 
         if (effects) {
             composer.render(0.1);
@@ -412,8 +440,8 @@ function render() {
 }
 
 function tweak_focus(_on) {
-    setTimeout(function(){
-        var tweak_int = setInterval(function(){
+    setTimeout(function() {
+        var tweak_int = setInterval(function() {
             if (_on) {
                 focusPass.uniforms.waveFactor.value += 0.01;
             } else {
@@ -434,12 +462,12 @@ function tweak_focus(_on) {
 
 function load_potholes() {
     for (var i in potholes.textures) {
-        potholes.textures[i].map = THREE.ImageUtils.loadTexture('img/'+potholes.textures[i].filename);
+        potholes.textures[i].map = THREE.ImageUtils.loadTexture('img/' + potholes.textures[i].filename);
     }
 }
 
 function generate_pothole() {
-    setTimeout(function(){
+    setTimeout(function() {
         cleanup_potholes();
 
         if (potholes.potholes.length < 50) {
@@ -463,8 +491,9 @@ function generate_pothole() {
             var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
 
             pothole.rotation.x = -Math.PI/2;
+            // pothole.position.applyEuler(euler);
 
-            var px = random( -((slabs.w*.5) + pw) , (slabs.w*.5) - pw );
+            var px = random(-((slabs.w * 0.5) + pw), (slabs.w * 0.5) - pw);
             pothole.position.x = px;
             pothole.position.y = potholes.y;
             pothole.position.z = -roadGroup.position.z - 6000;
@@ -479,7 +508,7 @@ function generate_pothole() {
 }
 
 function cleanup_potholes() {
-    for (var i = potholes.potholes.length-1; i > -1; i--) {
+    for (var i = potholes.potholes.length - 1; i > -1; i--) {
         var pothole = potholes.potholes[i];
         if (pothole !== undefined) {
             if (-roadGroup.position.z > pothole.position.z) {
