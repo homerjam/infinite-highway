@@ -130,13 +130,13 @@ function init() {
 
     scene.add(new THREE.AmbientLight(0xffffff));
 
-    light1 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light1 = new THREE.SpotLight(0xffffff, 50, 2000);
     light1.target.position.x = -400;
     light1.target.position.y = 50;
     light1.exponent = 120;
     scene.add(light1);
 
-    light2 = new THREE.SpotLight(0xffffff, 50, 3000);
+    light2 = new THREE.SpotLight(0xffffff, 50, 2000);
     light2.target.position.x = 400;
     light2.target.position.y = 50;
     light2.exponent = 120;
