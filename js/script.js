@@ -46,8 +46,8 @@ var lines = {
 };
 
 var cam = {
-    rotateX: -Math.PI/64,
-    posY: 150
+    rotateX: Math.PI/30,
+    posY: 60
 };
 
 var roadGroup;
@@ -60,14 +60,14 @@ var road = {
 
 var sway = {
     speedX: 0.3,
-    maxX: 40,
+    maxX: 10,
     speedY: 0.3,
     maxY: 20
 };
 
 var swing = {
     speedX: 0.1,
-    maxX: 20,
+    maxX: 10,
     speedY: 0.2,
     maxY: 20
 };
@@ -102,6 +102,7 @@ window.addEventListener('resize', function() {
 function init() {
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.rotation.x = cam.rotateX;
     camera.position.y = cam.posY;
     camera.position.z = 0;
     camera.setLens(35);
@@ -132,13 +133,13 @@ function init() {
     light1 = new THREE.SpotLight(0xffffff, 50, 3000);
     light1.target.position.x = -400;
     light1.target.position.y = 50;
-    light1.exponent = 150;
+    light1.exponent = 120;
     scene.add(light1);
 
     light2 = new THREE.SpotLight(0xffffff, 50, 3000);
     light2.target.position.x = 400;
     light2.target.position.y = 50;
-    light2.exponent = 150;
+    light2.exponent = 120;
     scene.add(light2);
 
     light1.position.x = -60;
@@ -234,37 +235,34 @@ function init() {
 
 
     textGeo = new THREE.TextGeometry("Hello World", {
-        size: 50,
-        height: 30,
-        bevelEnabled: false,
-        // curveSegments: 4,
+        size: 100,
+        height: 0,
         font: "boston traffic",
         weight: "normal",
         style: "normal",
-        // material: 0,
-        // extrudeMaterial: 1
+        bevelenabled: false
+        // curvesegments: 4
     });
 
     textGeo.computeBoundingBox();
     textGeo.computeVertexNormals();
 
-    var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+    material = new THREE.MeshPhongMaterial({
+        color: 0xffff00,
+        specular: 0xffff00,
+        ambient: 0xffff00,
+        shading: THREE.FlatShading,
+        map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
+        transparent: true,
+        opacity: 0.8
+    });
 
-    material = new THREE.MeshFaceMaterial([
-        new THREE.MeshPhongMaterial({
-            color: 0xffff00,
-            shading: THREE.FlatShading
-        }), // front
-        new THREE.MeshPhongMaterial({
-            color: 0xffff00,
-            shading: THREE.SmoothShading
-        }) // side
-    ]);
+    var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
 
     textMesh1 = new THREE.Mesh(textGeo, material);
     textMesh1.position.x = centerOffset;
-    textMesh1.position.y = 130;
-    textMesh1.position.z = -1000;
+    textMesh1.position.y = 150;
+    textMesh1.position.z = -20000;
     textMesh1.rotation.y = Math.PI * 2;
     scene.add(textMesh1);
 
@@ -402,6 +400,12 @@ function animate() {
         roadGroup.position.y = swayOffsetY;
 
         roadGroup.position.z += road.speed + speedOffset;
+
+        textMesh1.position.z += road.speed + speedOffset;
+
+        if (textMesh1.position.z > 0) {
+            textMesh1.position.z = -20000;
+        }
 
         dist = Math.floor(roadGroup.position.z / slabs.h);
 
