@@ -1,17 +1,59 @@
 var effects = true;
-var controls_enabled = false;
+var controlsEnabled = false;
 
 var options = {
-    road_speed: 150,
-    textHoldDelay: 2000
+    roadSpeed: 150,
+    textHoldDelay: 2000,
+    textArray: ['Welcome to Infinite Highway', 'type your message and hit enter']
 };
+
+var input = '', hasInput = false;
 
 $.fn.ready(function() {
 
     $(document).on('keydown', function(e) {
-        if (e.keyCode === 32) {
-            road.speed = road.speed === 0 ? options.road_speed : 0;
+        // console.log(e.keyCode);
+
+        if (e.keyCode === 8) {
+            e.preventDefault();
         }
+
+        switch (e.keyCode) {
+            case 187:
+                gainNode.gain.value = gainNode.gain.value < 0 ? gainNode.gain.value + 0.2 : 0;
+                break;
+            case 189:
+                gainNode.gain.value = gainNode.gain.value > -1 ? gainNode.gain.value - 0.2 : -1;
+                break;
+        }
+
+        if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90) || e.keyCode === 32) {
+            input += String.fromCharCode(e.keyCode);
+        }
+
+        if (e.keyCode === 8) {
+            input = input.split('');
+            input.splice(-1, 1);
+            input = input.join('');
+        }
+
+        if (e.keyCode === 13) {
+            console.log(input);
+
+            if (!hasInput) {
+                hasInput = true;
+
+                options.textArray = [input];
+
+            } else {
+                options.textArray.push(input);
+            }
+
+            textCounter = options.textArray.length - 1;
+
+            input = '';
+        }
+
     });
 
 });
@@ -28,9 +70,9 @@ var slabs = {
     w: 1500,
     h: 1500,
     count: 300,
-    texture_path: 'img3',
-    texture_format: 'jpg',
-    texture_count: 1,
+    texturePath: 'img3',
+    textureFormat: 'jpg',
+    textureCount: 1,
     geometry: null,
     materials: {}
 };
@@ -47,11 +89,15 @@ var lines = {
 };
 
 var text = {
+    lineSpacing: 10,
+    size: 100,
+    posY: 400,
+    lineChars: 15,
     inStartZ: -10000,
     inEndZ: -2000,
     outStartZ: -2000,
     outEndZ: 0,
-    inDuration: 3000,
+    inDuration: 2000,
     outDuration: 200,
     inDelay: 2000,
     outDelay: 2000
@@ -65,7 +111,7 @@ var cam = {
 var roadGroup;
 
 var road = {
-    speed: options.road_speed,
+    speed: options.roadSpeed,
     speedIncrement: 2,
     speedDirectionMax: 50
 };
@@ -97,10 +143,6 @@ var potholes = {
 
 var euler = new THREE.Euler(-Math.PI / 2, 0, 0, 'XYZ');
 
-var group, material, textGeo, textMesh1;
-
-var audio;
-
 window.addEventListener('load', function() {
     init();
     animate();
@@ -112,6 +154,34 @@ window.addEventListener('resize', function() {
 
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+var context, bufferLoader, gainNode;
+
+function finishedLoading(bufferList) {
+    var source1 = context.createBufferSource();
+    source1.buffer = bufferList[0];
+    source1.loop = true;
+    source1.connect(context.destination);
+    source1.start(0);
+
+    gainNode = context.createGain();
+    gainNode.gain.value = -0.6;
+
+    source1.connect(gainNode);
+
+    gainNode.connect(context.destination);
+}
+
+function initSound() {
+    bufferLoader = new BufferLoader(
+        context, [
+            'mp3/deranged.mp3',
+        ],
+        finishedLoading
+    );
+
+    bufferLoader.load();
+}
 
 function init() {
 
@@ -174,15 +244,15 @@ function init() {
 
     var i;
 
-    for (i = 0; i < slabs.texture_count; i++) {
-        var slab_material = new THREE.MeshPhongMaterial({
+    for (i = 0; i < slabs.textureCount; i++) {
+        var slabMaterial = new THREE.MeshPhongMaterial({
             ambient: 0x444444,
             specular: 0x000000,
             shading: THREE.SmoothShading,
-            map: THREE.ImageUtils.loadTexture(slabs.texture_path + '/slab' + i + '.' + slabs.texture_format)
+            map: THREE.ImageUtils.loadTexture(slabs.texturePath + '/slab' + i + '.' + slabs.textureFormat)
         });
-        slab_material.map.needsUpdate = true;
-        slabs.materials[i] = slab_material;
+        slabMaterial.map.needsUpdate = true;
+        slabs.materials[i] = slabMaterial;
     }
 
     slabs.geometry = new THREE.PlaneGeometry(slabs.w, slabs.h);
@@ -202,7 +272,7 @@ function init() {
         if (n === tI) {
             n = 0;
             tI = randomTextureInt();
-            t = random(0, slabs.texture_count - 1);
+            t = random(0, slabs.textureCount - 1);
         }
 
 
@@ -247,41 +317,6 @@ function init() {
 
     roadGroup.add(linesGroup);
 
-
-    textGeo = new THREE.TextGeometry("Hello World", {
-        size: 100,
-        height: 0,
-        font: "boston traffic italic",
-        weight: "normal",
-        style: "normal",
-        bevelenabled: false
-        // curvesegments: 4
-    });
-
-    textGeo.computeBoundingBox();
-    textGeo.computeVertexNormals();
-
-    material = new THREE.MeshPhongMaterial({
-        color: 0xffff00,
-        specular: 0xffff00,
-        ambient: 0xffff00,
-        shading: THREE.FlatShading,
-        map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
-        transparent: true,
-        opacity: 0.8
-    });
-
-    var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-
-    textMesh1 = new THREE.Mesh(textGeo, material);
-    textMesh1.position.x = centerOffset;
-    textMesh1.position.y = 150;
-    textMesh1.position.z = text.inStartZ;
-    textMesh1.rotation.y = Math.PI * 2;
-    textMesh1.rotation.z = Math.PI / 30;
-    scene.add(textMesh1);
-
-
     renderer = new THREE.WebGLRenderer({
         antialias: true
     });
@@ -310,40 +345,147 @@ function init() {
         composer.addPass(copyPass);
         copyPass.renderToScreen = true;
 
-        tweak_focus(true);
+        tweakFocus(true);
     }
 
-    load_potholes();
+    loadPotholes();
 
-    generate_pothole();
+    generatePothole();
 
     runTextTweenIn();
 
-    var isPlaying = false;
-    
-    audio = new Audio();
-    audio.src = 'mp3/deranged.mp3';
-    audio.addEventListener('canplaythrough', function() {
-        if (!isPlaying) {
-            console.log('canplaythrough');
+    try {
+        // Fix up for prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        context = new AudioContext();
 
-            isPlaying = true;
+        initSound();
 
-            audio.play();
-
-            setInterval(function() {
-                audio = new Audio();
-                audio.src = 'mp3/deranged.mp3';
-                audio.play();
-            }, 6478);
-        }
-    });
+    } catch (e) {
+        console.error('Web Audio API is not supported in this browser', e);
+    }
 }
+
+var textGroup, textMaterial, textCounter = 0;
+
+textMaterial = new THREE.MeshPhongMaterial({
+    color: 0xffff00,
+    specular: 0xffff00,
+    ambient: 0xffff00,
+    shading: THREE.FlatShading,
+    map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
+    transparent: true,
+    opacity: 0.8
+});
+
+function makeText(textString) {
+    if (textGroup) {
+        scene.remove(textGroup);
+    }
+
+    textGroup = new THREE.Object3D();
+    textGroup.position.z = Infinity;
+    scene.add(textGroup);
+
+    var textStringArray = textString.split(' ');
+
+    var linesCount = Math.ceil(textString.length / text.lineChars);
+
+    var lineCounter = 0,
+        wordCounter = 0;
+
+    var lines = [];
+
+    textStringArray.forEach(function(word, i) {
+        if (wordCounter > textStringArray.length / linesCount || word.length > Math.floor(text.lineChars * 0.66)) {
+            lineCounter++;
+            wordCounter = 0;
+        }
+
+        if (lines[lineCounter] === undefined) {
+            lines[lineCounter] = [];
+        }
+
+        lines[lineCounter].push(word);
+
+        wordCounter++;
+    });
+
+    var totalLineHeight = 0;
+
+    lines.reverse().forEach(function(line, i) {
+        var textGeo = new THREE.TextGeometry(line.join(' '), {
+            size: text.size,
+            height: 0,
+            font: "boston traffic italic",
+            weight: "normal",
+            style: "normal",
+            bevelEnabled: false,
+            curveSegments: 2
+        });
+
+        textGeo.computeBoundingBox();
+        textGeo.computeVertexNormals();
+
+        var textMesh = new THREE.Mesh(textGeo, textMaterial);
+        textMesh.position.x = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+        textMesh.position.y = totalLineHeight;
+        textMesh.rotation.y = Math.PI * 2;
+        textMesh.rotation.z = Math.PI / 30;
+        textGroup.add(textMesh);
+
+        totalLineHeight += Math.abs(textMesh.geometry.boundingBox.min.y - textMesh.geometry.boundingBox.max.y) + text.lineSpacing;
+    });
+
+    textGroup.position.y = text.posY - (totalLineHeight / 2);
+
+    textCounter = textCounter === options.textArray.length - 1 ? 0 : textCounter + 1;
+}
+
+var textTweenIn, textTweenOut;
+
+var runTextTweenIn = function() {
+    makeText(options.textArray[textCounter]);
+
+    textTweenIn = new TWEEN.Tween({
+        z: text.inStartZ
+    })
+        .to({
+            z: text.inEndZ
+        }, text.inDuration)
+        .easing(TWEEN.Easing.Exponential.In)
+        .onUpdate(function() {
+            textGroup.position.z = this.z;
+        })
+        .onComplete(function() {
+            runTextTweenOut();
+        })
+        .start();
+};
+
+var runTextTweenOut = function() {
+    textTweenOut = new TWEEN.Tween({
+        z: text.outStartZ
+    })
+        .to({
+            z: text.outEndZ
+        }, text.outDuration)
+        .delay(text.outDelay)
+        .onUpdate(function() {
+            textGroup.position.z = this.z;
+        })
+        .onComplete(function() {
+            setTimeout(function() {
+                runTextTweenIn();
+            }, text.inDelay);
+        })
+        .start();
+};
 
 var progress = 0;
 
 var dist = 0,
-    prev_dist = 0,
+    prevDist = 0,
     textLeaving = false,
     textHoldTimeout = null;
 
@@ -360,47 +502,10 @@ var camRotDirectionY, camRotOffsetY = 0,
 var speedDirection, speedOffset = 0,
     speedTarget = 0;
 
-var textTweenIn, textTweenOut;
-
-var runTextTweenIn = function() {
-    textTweenIn = new TWEEN.Tween({
-        z: text.inStartZ
-    })
-        .to({
-            z: text.inEndZ
-        }, text.inDuration)
-        .easing(TWEEN.Easing.Exponential.In)
-        .onUpdate(function() {
-            textMesh1.position.z = this.z;
-        })
-        .delay(text.inDelay)
-        .onComplete(function() {
-            runTextTweenOut();
-        })
-        .start();
-};
-
-var runTextTweenOut = function() {
-    textTweenOut = new TWEEN.Tween({
-        z: text.outStartZ
-    })
-        .to({
-            z: text.outEndZ
-        }, text.outDuration)
-        .delay(text.outDelay)
-        .onUpdate(function() {
-            textMesh1.position.z = this.z;
-        })
-        .onComplete(function() {
-            runTextTweenIn();
-        })
-        .start();
-};
-
 function animate() {
     requestAnimationFrame(animate);
 
-    if (controls_enabled) {
+    if (controlsEnabled) {
         controls.update();
 
     } else {
@@ -478,29 +583,20 @@ function animate() {
 
         dist = Math.floor(roadGroup.position.z / slabs.h);
 
-        if (dist > prev_dist) {
+        if (dist > prevDist) {
             progress++;
 
             if (progress > Math.floor(slabs.count * 0.8)) {
                 console.log('loop');
-                progress = prev_dist = 0;
+                progress = prevDist = 0;
                 roadGroup.position.z = 0;
 
             } else {
-                prev_dist = dist;
+                prevDist = dist;
             }
         }
 
         TWEEN.update();
-
-        // if (textMesh1.position.z >= camera.position.z - 1000) {
-        //     textMesh1.position.z = camera.position.z - 1000;
-
-        //     var centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-
-        //     textMesh1.position.x = centerOffset + camPosOffsetX;
-        //     textMesh1.position.y = 130 + camPosOffsetY;
-        // }
 
         if (effects) {
             composer.render(0.1);
@@ -514,41 +610,41 @@ function render() {
     renderer.render(scene, camera);
 }
 
-function tweak_focus(_on) {
+function tweakFocus(on) {
     setTimeout(function() {
-        var tweak_int = setInterval(function() {
-            if (_on) {
+        var tweakInterval = setInterval(function() {
+            if (on) {
                 focusPass.uniforms.waveFactor.value += 0.01;
             } else {
                 focusPass.uniforms.waveFactor.value -= 0.01;
             }
 
             if (focusPass.uniforms.waveFactor.value >= 0.1) {
-                _on = false;
+                on = false;
             } else if (focusPass.uniforms.waveFactor.value <= 0.001) {
-                clearInterval(tweak_int);
+                clearInterval(tweakInterval);
             }
         }, 100);
 
-        tweak_focus(true);
+        tweakFocus(true);
 
     }, random(10000, 40000));
 }
 
-function load_potholes() {
+function loadPotholes() {
     for (var i in potholes.textures) {
         potholes.textures[i].map = THREE.ImageUtils.loadTexture('img/' + potholes.textures[i].filename);
     }
 }
 
-function generate_pothole() {
+function generatePothole() {
     setTimeout(function() {
-        cleanup_potholes();
+        cleanupPotholes();
 
         if (potholes.potholes.length < 50) {
             var texture = potholes.textures[random(0, potholes.textures.length - 1)];
 
-            var pothole_material = new THREE.MeshPhongMaterial({
+            var potholeMaterial = new THREE.MeshPhongMaterial({
                 ambient: 0x444444,
                 specular: 0x000000,
                 shading: THREE.SmoothShading,
@@ -557,13 +653,13 @@ function generate_pothole() {
                 opacity: 0.8
             });
 
-            var pothole_scale = random(3, 6);
+            var potholeScale = random(3, 6);
 
-            var pw = (texture.w / pothole_scale);
-            var ph = (texture.h / pothole_scale);
-            pothole_geometry = new THREE.PlaneGeometry(pw, ph);
+            var pw = (texture.w / potholeScale);
+            var ph = (texture.h / potholeScale);
+            potholeGeometry = new THREE.PlaneGeometry(pw, ph);
 
-            var pothole = new THREE.Mesh(pothole_geometry, pothole_material);
+            var pothole = new THREE.Mesh(potholeGeometry, potholeMaterial);
 
             pothole.rotation.x = -Math.PI / 2;
             // pothole.position.applyEuler(euler);
@@ -577,12 +673,12 @@ function generate_pothole() {
             roadGroup.add(pothole);
         }
 
-        generate_pothole();
+        generatePothole();
 
     }, random(500, 2000));
 }
 
-function cleanup_potholes() {
+function cleanupPotholes() {
     for (var i = potholes.potholes.length - 1; i > -1; i--) {
         var pothole = potholes.potholes[i];
         if (pothole !== undefined) {
