@@ -319,10 +319,25 @@ function init() {
 
     runTextTweenIn();
 
+    var isPlaying = false;
+    
     audio = new Audio();
     audio.src = 'mp3/deranged.mp3';
-    audio.loop = true;
-    audio.play();
+    audio.addEventListener('canplaythrough', function() {
+        if (!isPlaying) {
+            console.log('canplaythrough');
+
+            isPlaying = true;
+
+            audio.play();
+
+            setInterval(function() {
+                audio = new Audio();
+                audio.src = 'mp3/deranged.mp3';
+                audio.play();
+            }, 6478);
+        }
+    });
 }
 
 var progress = 0;
