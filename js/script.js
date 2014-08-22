@@ -1,13 +1,20 @@
 var effects = true;
 var controlsEnabled = false;
 
+var fbase = new Firebase("https://losthighway.firebaseio.com/");
+
+fbase.child("message").on("value", function(snapshot) {
+    console.log(snapshot.val());
+});
+
 var options = {
     roadSpeed: 150,
     textHoldDelay: 2000,
     textArray: ['Welcome to Infinite Highway', 'type your message and hit enter']
 };
 
-var input = '', hasInput = false;
+var input = '',
+    hasInput = false;
 
 $.fn.ready(function() {
 
@@ -48,6 +55,10 @@ $.fn.ready(function() {
             } else {
                 options.textArray.push(input);
             }
+
+            fbase.set({
+                message: options.textArray
+            });
 
             textCounter = options.textArray.length - 1;
 
@@ -101,7 +112,7 @@ var text = {
     outDuration: 200,
     inDelay: 2000,
     outDelay: 2000
-}
+};
 
 var cam = {
     rotateX: Math.PI / 30,
