@@ -4,3 +4,41 @@ body {
     overflow: hidden;
     /*background: black;*/
 }
+
+canvas {
+    position: relative;
+    z-index: 0;
+}
+
+.input-wrapper {
+    position: absolute;
+    z-index: 1;
+    bottom: 50px;
+    left: 50px;
+    right: 50px;
+}
+
+#input-field {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: auto;
+    bottom: 100%;
+    width: 100%;
+    max-width: 500px;
+    height: 50px;
+    background: transparent;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 20px;
+    color: yellow;
+}
+
+#input-field:focus {
+    outline: none;
+    box-shadow: none;
+    box-shadow: 0 0 4px rgba(255, 255, 0, 0.5);
+}

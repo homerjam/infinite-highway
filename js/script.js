@@ -4,26 +4,30 @@ var controlsEnabled = false;
 var fbase = new Firebase("https://losthighway.firebaseio.com/");
 
 fbase.child("message").on("value", function(snapshot) {
-    console.log(snapshot.val());
+    var input = snapshot.val();
+
+    if (!hasInput) {
+        hasInput = true;
+
+        options.textArray = [input];
+
+    } else {
+        options.textArray.push(input);
+    }
 });
 
 var options = {
     roadSpeed: 150,
     textHoldDelay: 2000,
-    textArray: ['Welcome to Infinite Highway', 'type your message and hit enter']
+    textArray: ['Welcome to Infinite Highway']
 };
 
-var input = '',
-    hasInput = false;
+var hasInput = false;
 
 $.fn.ready(function() {
 
     $(document).on('keydown', function(e) {
         // console.log(e.keyCode);
-
-        if (e.keyCode === 8) {
-            e.preventDefault();
-        }
 
         switch (e.keyCode) {
             case 187:
@@ -34,35 +38,29 @@ $.fn.ready(function() {
                 break;
         }
 
-        if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90) || e.keyCode === 32) {
-            input += String.fromCharCode(e.keyCode);
-        }
+    });
 
-        if (e.keyCode === 8) {
-            input = input.split('');
-            input.splice(-1, 1);
-            input = input.join('');
-        }
+    $('#input-field').on('keyup', function(e) {
+        // console.log(e.keyCode);
 
         if (e.keyCode === 13) {
-            console.log(input);
 
-            if (!hasInput) {
-                hasInput = true;
+            var input = $(this).val();
 
-                options.textArray = [input];
+            // if (!hasInput) {
+            //     hasInput = true;
 
-            } else {
-                options.textArray.push(input);
-            }
+            //     options.textArray = [input];
+
+            // } else {
+            //     options.textArray.push(input);
+            // }
 
             fbase.set({
-                message: options.textArray
+                message: input
             });
 
-            textCounter = options.textArray.length - 1;
-
-            input = '';
+            $(this).val('');
         }
 
     });
@@ -202,22 +200,24 @@ function init() {
     camera.position.z = 0;
     camera.setLens(35);
 
-    controls = new THREE.TrackballControls(camera);
-    controls.target.set(0, 0, 0);
+    if (typeof THREE.TrackballControls === 'function') {
+        controls = new THREE.TrackballControls(camera);
+        controls.target.set(0, 0, 0);
 
-    controls.rotateSpeed = 1.0;
-    controls.zoomSpeed = 1.2;
-    controls.panSpeed = 0.8;
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 1.2;
+        controls.panSpeed = 0.8;
 
-    controls.noZoom = false;
-    controls.noPan = false;
+        controls.noZoom = false;
+        controls.noPan = false;
 
-    controls.staticMoving = true;
-    controls.dynamicDampingFactor = 0.3;
+        controls.staticMoving = true;
+        controls.dynamicDampingFactor = 0.3;
 
-    controls.keys = [65, 83, 68];
+        controls.keys = [65, 83, 68];
 
-    controls.addEventListener('change', render);
+        controls.addEventListener('change', render);
+    }
 
     scene = new THREE.Scene();
 
@@ -377,7 +377,7 @@ function init() {
     }
 }
 
-var textGroup, textMaterial, textCounter = 0;
+var textGroup, textMaterial;
 
 textMaterial = new THREE.MeshPhongMaterial({
     color: 0xffff00,
@@ -390,6 +390,12 @@ textMaterial = new THREE.MeshPhongMaterial({
 });
 
 function makeText(textString) {
+    if (!textString) {
+        return;
+    }
+
+    console.warn(textString);
+
     if (textGroup) {
         scene.remove(textGroup);
     }
@@ -449,18 +455,18 @@ function makeText(textString) {
     });
 
     textGroup.position.y = text.posY - (totalLineHeight / 2);
-
-    textCounter = textCounter === options.textArray.length - 1 ? 0 : textCounter + 1;
 }
 
 var textTweenIn, textTweenOut;
 
 var runTextTweenIn = function() {
-    makeText(options.textArray[textCounter]);
+    var textArray = options.textArray.length ? options.textArray.splice(0, 1) : '';
+
+    makeText(textArray[0]);
 
     textTweenIn = new TWEEN.Tween({
-        z: text.inStartZ
-    })
+            z: text.inStartZ
+        })
         .to({
             z: text.inEndZ
         }, text.inDuration)
@@ -476,8 +482,8 @@ var runTextTweenIn = function() {
 
 var runTextTweenOut = function() {
     textTweenOut = new TWEEN.Tween({
-        z: text.outStartZ
-    })
+            z: text.outStartZ
+        })
         .to({
             z: text.outEndZ
         }, text.outDuration)
