@@ -97,6 +97,8 @@ var lines = {
     geometry: null
 };
 
+var font;
+
 var text = {
     lineSpacing: 10,
     size: 100,
@@ -200,7 +202,7 @@ function init() {
     camera.position.z = 0;
     camera.setLens(35);
 
-    if (typeof THREE.TrackballControls === 'function') {
+    if (controlsEnabled && typeof THREE.TrackballControls === 'function') {
         controls = new THREE.TrackballControls(camera);
         controls.target.set(0, 0, 0);
 
@@ -223,43 +225,51 @@ function init() {
 
     scene.fog = new THREE.FogExp2(0x000000, 0.0002);
 
-    scene.add(new THREE.AmbientLight(0xffffff));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
 
-    light1 = new THREE.SpotLight(0xffffff, 50, 2000);
-    light1.target.position.x = -400;
-    light1.target.position.y = 50;
-    light1.exponent = 120;
+    light1 = new THREE.SpotLight(0xffffff, 4);
+    light1.angle = Math.PI/8;
+    light1.penumbra = 0.5;
+    light1.decay = 0;
+    light1.distance = 500;
     scene.add(light1);
 
-    light2 = new THREE.SpotLight(0xffffff, 50, 2000);
-    light2.target.position.x = 400;
-    light2.target.position.y = 50;
-    light2.exponent = 120;
+    light2 = new THREE.SpotLight(0xffffff, 4);
+    light2.angle = Math.PI/8;
+    light2.penumbra = 0.5;
+    light2.decay = 0;
+    light2.distance = 500;
     scene.add(light2);
 
     light1.position.x = -60;
     light2.position.x = 60;
-    light1.position.y = light2.position.y = 50;
-    light1.position.z = light2.position.z = 0;
-    light1.target.position.z = light2.target.position.z = -3000;
+    light1.position.y = light2.position.y = 100;
+    light1.position.z = light2.position.z = -120;
 
     var sphere = new THREE.SphereGeometry(10, 16, 8);
 
-    // var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
-    // l1.position = light1.position;
-    // scene.add(l1);
+    var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
+    l1.position.x = -150;
+    l1.position.y = -200;
+    l1.position.z = -800;
+    scene.add(l1);
 
-    // var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
-    // l2.position = light2.position;
-    // scene.add(l2);
+    light1.target = l1;
+
+    var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
+    l2.position.x = 150;
+    l2.position.y = -200;
+    l2.position.z = -800;
+    scene.add(l2);
+
+    light2.target = l2;
 
     var i;
 
     for (i = 0; i < slabs.textureCount; i++) {
         var slabMaterial = new THREE.MeshPhongMaterial({
-            ambient: 0x444444,
             specular: 0x000000,
-            shading: THREE.SmoothShading,
+            flatShading: true,
             map: THREE.ImageUtils.loadTexture(slabs.texturePath + '/slab' + i + '.' + slabs.textureFormat)
         });
         slabMaterial.map.needsUpdate = true;
@@ -306,8 +316,6 @@ function init() {
     lines.material = new THREE.MeshPhongMaterial({
         color: 0xffff00,
         specular: 0xffff00,
-        ambient: 0x444444,
-        shading: THREE.SmoothShading,
         map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
         transparent: true,
         opacity: 0.8
@@ -321,7 +329,7 @@ function init() {
         line.rotation.x = -Math.PI / 2;
         // line.position.applyEuler(euler);
         line.position.y = lines.y;
-        line.position.z = 0 - (i * (lines.h * 2));
+        line.position.z = 0 - (i * (lines.h * 3));
         lines.lines.push(line);
         linesGroup.add(line);
     }
@@ -333,7 +341,7 @@ function init() {
     });
     renderer.setClearColor(scene.fog.color, 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMapEnabled = true;
+    renderer.shadowMap.enabled = true;
 
     document.body.appendChild(renderer.domElement);
 
@@ -363,7 +371,13 @@ function init() {
 
     generatePothole();
 
-    runTextTweenIn();
+    var loader = new THREE.FontLoader();
+
+    loader.load('js/boston_traffic_italic_regular.json', function (_font) {
+        font = _font;
+
+        runTextTweenIn();
+    });
 
     try {
         // Fix up for prefixing
@@ -381,9 +395,8 @@ var textGroup, textMaterial;
 
 textMaterial = new THREE.MeshPhongMaterial({
     color: 0xffff00,
+    emissive: 0xffff00,
     specular: 0xffff00,
-    ambient: 0xffff00,
-    shading: THREE.FlatShading,
     map: THREE.ImageUtils.loadTexture('img/rough_yellow.jpg'),
     transparent: true,
     opacity: 0.8
@@ -434,7 +447,7 @@ function makeText(textString) {
         var textGeo = new THREE.TextGeometry(line.join(' '), {
             size: text.size,
             height: 0,
-            font: "boston traffic italic",
+            font: font,
             weight: "normal",
             style: "normal",
             bevelEnabled: false,
@@ -662,9 +675,7 @@ function generatePothole() {
             var texture = potholes.textures[random(0, potholes.textures.length - 1)];
 
             var potholeMaterial = new THREE.MeshPhongMaterial({
-                ambient: 0x444444,
                 specular: 0x000000,
-                shading: THREE.SmoothShading,
                 map: texture.map,
                 transparent: true,
                 opacity: 0.8
@@ -681,7 +692,7 @@ function generatePothole() {
             pothole.rotation.x = -Math.PI / 2;
             // pothole.position.applyEuler(euler);
 
-            var px = random(-((slabs.w * 0.5) + pw), (slabs.w * 0.5) - pw);
+            var px = random(-150, 150);
             pothole.position.x = px;
             pothole.position.y = potholes.y;
             pothole.position.z = -roadGroup.position.z - 6000;
@@ -692,7 +703,7 @@ function generatePothole() {
 
         generatePothole();
 
-    }, random(500, 2000));
+    }, random(200, 1000));
 }
 
 function cleanupPotholes() {

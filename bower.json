@@ -14,9 +14,7 @@
     "tests"
   ],
   "dependencies": {
-    "jquery": "~2.0.3",
-    "threejs-examples": "https://github.com/mrdoob/three.js.git#gh-pages",
-    "threejs": "r59",
-    "tween.js": "https://github.com/sole/tween.js.git#r14"
+    "jquery": "~3.2.1",
+    "threejs": "r88"
   }
 }

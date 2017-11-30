@@ -8,3 +8,4 @@ bower_components/threejs/examples/*
 !bower_components/threejs/examples/js
 bower_components/tween.js/*
 !bower_components/tween.js/build
+node_modules

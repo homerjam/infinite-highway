@@ -1,0 +1,22 @@
+{
+  "name": "losthighway",
+  "version": "1.0.0",
+  "description": "losthighway",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://homerjam@github.com/homerjam/losthighway.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/homerjam/losthighway/issues"
+  },
+  "homepage": "https://github.com/homerjam/losthighway#readme",
+  "dependencies": {
+    "eslint": "^4.12.1"
+  }
+}

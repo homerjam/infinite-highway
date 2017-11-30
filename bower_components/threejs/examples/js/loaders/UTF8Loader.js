@@ -19,7 +19,7 @@ THREE.UTF8Loader = function () {};
 
 THREE.UTF8Loader.prototype.load = function ( jsonUrl, callback, options ) {
 
-    this.downloadModelJson( jsonUrl, options, callback );
+	this.downloadModelJson( jsonUrl, callback, options );
 
 };
 
@@ -28,19 +28,17 @@ THREE.UTF8Loader.prototype.load = function ( jsonUrl, callback, options ) {
 THREE.UTF8Loader.BufferGeometryCreator = function () {
 };
 
-THREE.UTF8Loader.BufferGeometryCreator.prototype.create = function ( attribArray, indexArray ) {
+THREE.UTF8Loader.BufferGeometryCreator.prototype.create = function ( attribArray, indices ) {
 
-	var ntris = indexArray.length / 3;
+	var ntris = indices.length / 3;
 
 	var geometry = new THREE.BufferGeometry();
 
-	var positionArray = new Float32Array( 3 * 3 * ntris );
-	var normalArray = new Float32Array( 3 * 3 * ntris );
-	var uvArray = new Float32Array( 2 * 3 * ntris );
+	var positions = new Float32Array( ntris * 3 * 3 );
+	var normals = new Float32Array( ntris * 3 * 3 );
+	var uvs = new Float32Array( ntris * 3 * 2 );
 
 	var i, j, offset;
-	var x, y, z;
-	var u, v;
 
 	var end = attribArray.length;
 	var stride = 8;
@@ -50,15 +48,11 @@ THREE.UTF8Loader.BufferGeometryCreator.prototype.create = function ( attribArray
 	j = 0;
 	offset = 0;
 
-	for( i = offset; i < end; i += stride ) {
+	for ( i = offset; i < end; i += stride ) {
 
-		x = attribArray[ i ];
-		y = attribArray[ i + 1 ];
-		z = attribArray[ i + 2 ];
-
-		positionArray[ j++ ] = x;
-		positionArray[ j++ ] = y;
-		positionArray[ j++ ] = z;
+		positions[ j ++ ] = attribArray[ i ];
+		positions[ j ++ ] = attribArray[ i + 1 ];
+		positions[ j ++ ] = attribArray[ i + 2 ];
 
 	}
 
@@ -67,13 +61,10 @@ THREE.UTF8Loader.BufferGeometryCreator.prototype.create = function ( attribArray
 	j = 0;
 	offset = 3;
 
-	for( i = offset; i < end; i += stride ) {
+	for ( i = offset; i < end; i += stride ) {
 
-		u = attribArray[ i ];
-		v = attribArray[ i + 1 ];
-
-		uvArray[ j++ ] = u;
-		uvArray[ j++ ] = v;
+		uvs[ j ++ ] = attribArray[ i ];
+		uvs[ j ++ ] = attribArray[ i + 1 ];
 
 	}
 
@@ -82,195 +73,22 @@ THREE.UTF8Loader.BufferGeometryCreator.prototype.create = function ( attribArray
 	j = 0;
 	offset = 5;
 
-	for( i = offset; i < end; i += stride ) {
+	for ( i = offset; i < end; i += stride ) {
 
-		x = attribArray[ i ];
-		y = attribArray[ i + 1 ];
-		z = attribArray[ i + 2 ];
-
-		normalArray[ j++ ] = x;
-		normalArray[ j++ ] = y;
-		normalArray[ j++ ] = z;
+		normals[ j ++ ] = attribArray[ i ];
+		normals[ j ++ ] = attribArray[ i + 1 ];
+		normals[ j ++ ] = attribArray[ i + 2 ];
 
 	}
 
-	// create attributes
-
-	var attributes = geometry.attributes;
-
-	attributes[ "index" ]    = { itemSize: 1, array: indexArray, numItems: indexArray.length };
-	attributes[ "position" ] = { itemSize: 3, array: positionArray, numItems: positionArray.length };
-	attributes[ "normal" ]   = { itemSize: 3, array: normalArray, numItems: normalArray.length };
-	attributes[ "uv" ] 		 = { itemSize: 2, array: uvArray, numItems: uvArray.length };
-
-	// create offsets
-	// (all triangles should fit in a single chunk)
-
-	geometry.offsets = [ { start: 0, count: indexArray.length, index: 0 } ];
+	geometry.setIndex( new THREE.BufferAttribute( indices, 1 ) );
+	geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+	geometry.addAttribute( 'normal', new THREE.BufferAttribute( normals, 3 ) );
+	geometry.addAttribute( 'uv', new THREE.BufferAttribute( uvs, 2 ) );
 
 	geometry.computeBoundingSphere();
 
 	return geometry;
-
-};
-
-// GeometryCreator
-
-THREE.UTF8Loader.GeometryCreator = function () {
-};
-
-THREE.UTF8Loader.GeometryCreator.prototype = {
-
-    create: function ( attribArray, indexArray ) {
-
-        var geometry = new THREE.Geometry();
-
-        this.init_vertices( geometry, attribArray, 8, 0 );
-
-        var uvs = this.init_uvs( attribArray, 8, 3 );
-        var normals = this.init_normals( attribArray, 8, 5 );
-
-        this.init_faces( geometry, normals, uvs, indexArray );
-
-        geometry.computeCentroids();
-        geometry.computeFaceNormals();
-
-        return geometry;
-
-    },
-
-    init_vertices: function ( scope, data, stride, offset ) {
-
-        var i, x, y, z;
-		var end = data.length;
-
-        for( i = offset; i < end; i += stride ) {
-
-            x = data[ i ];
-            y = data[ i + 1 ];
-            z = data[ i + 2 ];
-
-            this.addVertex( scope, x, y, z );
-
-        }
-
-    },
-
-    init_normals: function( data, stride, offset ) {
-
-        var normals = [];
-
-        var i, x, y, z;
-		var end = data.length;
-
-        for( i = offset; i < end; i += stride ) {
-
-            // Assumes already normalized to <-1,1> (unlike previous version of UTF8Loader)
-
-            x = data[ i ];
-            y = data[ i + 1 ];
-            z = data[ i + 2 ];
-
-            normals.push( x, y, z );
-
-        }
-
-        return normals;
-
-    },
-
-    init_uvs: function( data, stride, offset ) {
-
-        var uvs = [];
-
-        var i, u, v;
-		var end = data.length;
-
-        for( i = offset; i < end; i += stride ) {
-
-            // Assumes uvs are already normalized (unlike previous version of UTF8Loader)
-            // uvs can be negative, need to set wrap for texture map later on ...
-
-            u = data[ i ];
-            v = data[ i + 1 ];
-
-            uvs.push( u, v );
-        }
-
-        return uvs;
-
-    },
-
-    init_faces: function( scope, normals, uvs, indices ) {
-
-        var i,
-            a, b, c,
-            u1, v1, u2, v2, u3, v3;
-
-		var end = indices.length;
-
-        var m = 0; // all faces defaulting to material 0
-
-        for( i = 0; i < end; i += 3 ) {
-
-            a = indices[ i ];
-            b = indices[ i + 1 ];
-            c = indices[ i + 2 ];
-
-            this.f3n( scope, normals, a, b, c, m, a, b, c );
-
-            u1 = uvs[ a * 2 ];
-            v1 = uvs[ a * 2 + 1 ];
-
-            u2 = uvs[ b * 2 ];
-            v2 = uvs[ b * 2 + 1 ];
-
-            u3 = uvs[ c * 2 ];
-            v3 = uvs[ c * 2 + 1 ];
-
-            this.uv3( scope.faceVertexUvs[ 0 ], u1, v1, u2, v2, u3, v3 );
-
-        }
-
-    },
-
-    addVertex: function ( scope, x, y, z ) {
-
-        scope.vertices.push( new THREE.Vector3( x, y, z ) );
-
-    },
-
-    f3n: function( scope, normals, a, b, c, mi, nai, nbi, nci ) {
-
-        var nax = normals[ nai * 3 ],
-            nay = normals[ nai * 3 + 1 ],
-            naz = normals[ nai * 3 + 2 ],
-
-            nbx = normals[ nbi * 3 ],
-            nby = normals[ nbi * 3 + 1 ],
-            nbz = normals[ nbi * 3 + 2 ],
-
-            ncx = normals[ nci * 3 ],
-            ncy = normals[ nci * 3 + 1 ],
-            ncz = normals[ nci * 3 + 2 ];
-
-        var na = new THREE.Vector3( nax, nay, naz ),
-            nb = new THREE.Vector3( nbx, nby, nbz ),
-            nc = new THREE.Vector3( ncx, ncy, ncz );
-
-        scope.faces.push( new THREE.Face3( a, b, c, [ na, nb, nc ], null, mi ) );
-
-    },
-
-    uv3: function ( where, u1, v1, u2, v2, u3, v3 ) {
-
-        var uv = [];
-        uv.push( new THREE.Vector2( u1, v1 ) );
-        uv.push( new THREE.Vector2( u2, v2 ) );
-        uv.push( new THREE.Vector2( u3, v3 ) );
-        where.push( uv );
-
-    }
 
 };
 
@@ -300,18 +118,18 @@ THREE.UTF8Loader.GeometryCreator.prototype = {
 
 var DEFAULT_DECODE_PARAMS = {
 
-    decodeOffsets: [-4095, -4095, -4095, 0, 0, -511, -511, -511],
-    decodeScales: [1/8191, 1/8191, 1/8191, 1/1023, 1/1023, 1/1023, 1/1023, 1/1023]
+	decodeOffsets: [ - 4095, - 4095, - 4095, 0, 0, - 511, - 511, - 511 ],
+	decodeScales: [ 1 / 8191, 1 / 8191, 1 / 8191, 1 / 1023, 1 / 1023, 1 / 1023, 1 / 1023, 1 / 1023 ]
 
-    // TODO: normal decoding? (see walt.js)
-    // needs to know: input, output (from vertex format!)
-    //
-    // Should split attrib/index.
-    // 1) Decode position and non-normal attributes.
-    // 2) Decode indices, computing normals
-    // 3) Maybe normalize normals? Only necessary for refinement, or fixed?
-    // 4) Maybe refine normals? Should this be part of regular refinement?
-    // 5) Morphing
+	// TODO: normal decoding? (see walt.js)
+	// needs to know: input, output (from vertex format!)
+	//
+	// Should split attrib/index.
+	// 1) Decode position and non-normal attributes.
+	// 2) Decode indices, computing normals
+	// 3) Maybe normalize normals? Only necessary for refinement, or fixed?
+	// 4) Maybe refine normals? Should this be part of regular refinement?
+	// 5) Morphing
 
 };
 
@@ -322,541 +140,520 @@ var DEFAULT_DECODE_PARAMS = {
 // decodeScale?
 
 THREE.UTF8Loader.prototype.decompressAttribsInner_ = function ( str, inputStart, inputEnd,
-                                                                  output, outputStart, stride,
-                                                                  decodeOffset, decodeScale ) {
+	output, outputStart, stride, decodeOffset, decodeScale ) {
 
-    var prev = 0;
+	var prev = 0;
 
-    for ( var j = inputStart; j < inputEnd; j ++ ) {
+	for ( var j = inputStart; j < inputEnd; j ++ ) {
 
-        var code = str.charCodeAt( j );
-        prev += ( code >> 1 ) ^ ( -( code & 1 ) );
+		var code = str.charCodeAt( j );
+		prev += ( code >> 1 ) ^ ( - ( code & 1 ) );
 
-        output[ outputStart ] = decodeScale * ( prev + decodeOffset );
-        outputStart += stride;
+		output[ outputStart ] = decodeScale * ( prev + decodeOffset );
+		outputStart += stride;
 
-    }
+	}
 
 };
 
-THREE.UTF8Loader.prototype.decompressIndices_ = function( str, inputStart, numIndices,
-                                                            output, outputStart ) {
+THREE.UTF8Loader.prototype.decompressIndices_ = function ( str, inputStart, numIndices, output, outputStart ) {
 
 	var highest = 0;
 
-    for ( var i = 0; i < numIndices; i ++ ) {
+	for ( var i = 0; i < numIndices; i ++ ) {
 
-        var code = str.charCodeAt( inputStart ++ );
+		var code = str.charCodeAt( inputStart ++ );
 
-        output[ outputStart ++ ] = highest - code;
+		output[ outputStart ++ ] = highest - code;
 
-        if ( code === 0 ) {
+		if ( code === 0 ) {
 
-            highest ++;
+			highest ++;
 
-        }
+		}
 
-    }
-
-};
-
-THREE.UTF8Loader.prototype.decompressAABBs_ = function ( str, inputStart, numBBoxen,
-                                                           decodeOffsets, decodeScales ) {
-    var numFloats = 6 * numBBoxen;
-
-    var inputEnd = inputStart + numFloats;
-    var outputStart = 0;
-
-    var bboxen = new Float32Array( numFloats );
-
-    for ( var i = inputStart; i < inputEnd; i += 6 ) {
-
-        var minX = str.charCodeAt(i + 0) + decodeOffsets[0];
-        var minY = str.charCodeAt(i + 1) + decodeOffsets[1];
-        var minZ = str.charCodeAt(i + 2) + decodeOffsets[2];
-
-        var radiusX = (str.charCodeAt(i + 3) + 1) >> 1;
-        var radiusY = (str.charCodeAt(i + 4) + 1) >> 1;
-        var radiusZ = (str.charCodeAt(i + 5) + 1) >> 1;
-
-        bboxen[ outputStart++ ] = decodeScales[0] * (minX + radiusX);
-        bboxen[ outputStart++ ] = decodeScales[1] * (minY + radiusY);
-        bboxen[ outputStart++ ] = decodeScales[2] * (minZ + radiusZ);
-
-        bboxen[ outputStart++ ] = decodeScales[0] * radiusX;
-        bboxen[ outputStart++ ] = decodeScales[1] * radiusY;
-        bboxen[ outputStart++ ] = decodeScales[2] * radiusZ;
-
-    }
-
-    return bboxen;
+	}
 
 };
 
-THREE.UTF8Loader.prototype.decompressMesh =  function ( str, meshParams, decodeParams, name, idx, callback ) {
+THREE.UTF8Loader.prototype.decompressAABBs_ = function ( str, inputStart, numBBoxen, decodeOffsets, decodeScales ) {
 
-    // Extract conversion parameters from attribArrays.
+	var numFloats = 6 * numBBoxen;
 
-    var stride = decodeParams.decodeScales.length;
+	var inputEnd = inputStart + numFloats;
+	var outputStart = 0;
 
-    var decodeOffsets = decodeParams.decodeOffsets;
-    var decodeScales = decodeParams.decodeScales;
+	var bboxen = new Float32Array( numFloats );
 
-    var attribStart = meshParams.attribRange[0];
-    var numVerts = meshParams.attribRange[1];
+	for ( var i = inputStart; i < inputEnd; i += 6 ) {
 
-    // Decode attributes.
+		var minX = str.charCodeAt( i + 0 ) + decodeOffsets[ 0 ];
+		var minY = str.charCodeAt( i + 1 ) + decodeOffsets[ 1 ];
+		var minZ = str.charCodeAt( i + 2 ) + decodeOffsets[ 2 ];
 
-    var inputOffset = attribStart;
-    var attribsOut = new Float32Array( stride * numVerts );
+		var radiusX = ( str.charCodeAt( i + 3 ) + 1 ) >> 1;
+		var radiusY = ( str.charCodeAt( i + 4 ) + 1 ) >> 1;
+		var radiusZ = ( str.charCodeAt( i + 5 ) + 1 ) >> 1;
 
-    for (var j = 0; j < stride; j ++ ) {
+		bboxen[ outputStart ++ ] = decodeScales[ 0 ] * ( minX + radiusX );
+		bboxen[ outputStart ++ ] = decodeScales[ 1 ] * ( minY + radiusY );
+		bboxen[ outputStart ++ ] = decodeScales[ 2 ] * ( minZ + radiusZ );
 
-        var end = inputOffset + numVerts;
+		bboxen[ outputStart ++ ] = decodeScales[ 0 ] * radiusX;
+		bboxen[ outputStart ++ ] = decodeScales[ 1 ] * radiusY;
+		bboxen[ outputStart ++ ] = decodeScales[ 2 ] * radiusZ;
 
-		var decodeScale = decodeScales[j];
+	}
 
-        if ( decodeScale ) {
+	return bboxen;
 
-            // Assume if decodeScale is never set, simply ignore the
-            // attribute.
+};
 
-            this.decompressAttribsInner_( str, inputOffset, end,
-                attribsOut, j, stride,
-                decodeOffsets[j], decodeScale );
-        }
+THREE.UTF8Loader.prototype.decompressMesh = function ( str, meshParams, decodeParams, name, idx, callback ) {
 
-        inputOffset = end;
+	// Extract conversion parameters from attribArrays.
 
-    }
+	var stride = decodeParams.decodeScales.length;
 
-    var indexStart = meshParams.indexRange[ 0 ];
-    var numIndices = 3 * meshParams.indexRange[ 1 ];
+	var decodeOffsets = decodeParams.decodeOffsets;
+	var decodeScales = decodeParams.decodeScales;
 
-    var indicesOut = new Uint16Array( numIndices );
+	var attribStart = meshParams.attribRange[ 0 ];
+	var numVerts = meshParams.attribRange[ 1 ];
 
-    this.decompressIndices_( str, inputOffset, numIndices, indicesOut, 0 );
+	// Decode attributes.
 
-    // Decode bboxen.
+	var inputOffset = attribStart;
+	var attribsOut = new Float32Array( stride * numVerts );
 
-    var bboxen = undefined;
-    var bboxOffset = meshParams.bboxes;
+	for ( var j = 0; j < stride; j ++ ) {
 
-    if ( bboxOffset ) {
+		var end = inputOffset + numVerts;
 
-        bboxen = this.decompressAABBs_( str, bboxOffset, meshParams.names.length, decodeOffsets, decodeScales );
-    }
+		var decodeScale = decodeScales[ j ];
 
-    callback( name, idx, attribsOut, indicesOut, bboxen, meshParams );
+		if ( decodeScale ) {
+
+			// Assume if decodeScale is never set, simply ignore the
+			// attribute.
+
+			this.decompressAttribsInner_( str, inputOffset, end, attribsOut, j, stride, decodeOffsets[ j ], decodeScale );
+
+		}
+
+		inputOffset = end;
+
+	}
+
+	var numIndices = 3 * meshParams.indexRange[ 1 ];
+
+	var indicesOut = new Uint16Array( numIndices );
+
+	this.decompressIndices_( str, inputOffset, numIndices, indicesOut, 0 );
+
+	// Decode bboxen.
+
+	var bboxen = undefined;
+	var bboxOffset = meshParams.bboxes;
+
+	if ( bboxOffset ) {
+
+		bboxen = this.decompressAABBs_( str, bboxOffset, meshParams.names.length, decodeOffsets, decodeScales );
+
+	}
+
+	callback( name, idx, attribsOut, indicesOut, bboxen, meshParams );
 
 };
 
 THREE.UTF8Loader.prototype.copyAttrib = function ( stride, attribsOutFixed, lastAttrib, index ) {
 
-    for ( var j = 0; j < stride; j ++ ) {
+	for ( var j = 0; j < stride; j ++ ) {
 
-        lastAttrib[ j ] = attribsOutFixed[ stride * index + j ];
+		lastAttrib[ j ] = attribsOutFixed[ stride * index + j ];
 
-    }
+	}
 
 };
 
 THREE.UTF8Loader.prototype.decodeAttrib2 = function ( str, stride, decodeOffsets, decodeScales, deltaStart,
-                                                        numVerts, attribsOut, attribsOutFixed, lastAttrib,
-                                                        index ) {
+	numVerts, attribsOut, attribsOutFixed, lastAttrib, index ) {
 
-    for ( var j = 0; j < 5; j ++ ) {
+	for ( var j = 0; j < 5; j ++ ) {
 
-        var code = str.charCodeAt( deltaStart + numVerts*j + index );
-        var delta = ( code >> 1) ^ (-(code & 1));
+		var code = str.charCodeAt( deltaStart + numVerts * j + index );
+		var delta = ( code >> 1 ) ^ ( - ( code & 1 ) );
 
-        lastAttrib[ j ] += delta;
-        attribsOutFixed[ stride * index + j ] = lastAttrib[ j ];
-        attribsOut[ stride * index + j ] = decodeScales[ j ] * ( lastAttrib[ j ] + decodeOffsets[ j ] );
-    }
+		lastAttrib[ j ] += delta;
+		attribsOutFixed[ stride * index + j ] = lastAttrib[ j ];
+		attribsOut[ stride * index + j ] = decodeScales[ j ] * ( lastAttrib[ j ] + decodeOffsets[ j ] );
+
+	}
 
 };
 
 THREE.UTF8Loader.prototype.accumulateNormal = function ( i0, i1, i2, attribsOutFixed, crosses ) {
 
-    var p0x = attribsOutFixed[ 8*i0 ];
-    var p0y = attribsOutFixed[ 8*i0 + 1 ];
-    var p0z = attribsOutFixed[ 8*i0 + 2 ];
+	var p0x = attribsOutFixed[ 8 * i0 ];
+	var p0y = attribsOutFixed[ 8 * i0 + 1 ];
+	var p0z = attribsOutFixed[ 8 * i0 + 2 ];
 
-    var p1x = attribsOutFixed[ 8*i1 ];
-    var p1y = attribsOutFixed[ 8*i1 + 1 ];
-    var p1z = attribsOutFixed[ 8*i1 + 2 ];
+	var p1x = attribsOutFixed[ 8 * i1 ];
+	var p1y = attribsOutFixed[ 8 * i1 + 1 ];
+	var p1z = attribsOutFixed[ 8 * i1 + 2 ];
 
-    var p2x = attribsOutFixed[ 8*i2 ];
-    var p2y = attribsOutFixed[ 8*i2 + 1 ];
-    var p2z = attribsOutFixed[ 8*i2 + 2 ];
+	var p2x = attribsOutFixed[ 8 * i2 ];
+	var p2y = attribsOutFixed[ 8 * i2 + 1 ];
+	var p2z = attribsOutFixed[ 8 * i2 + 2 ];
 
-    p1x -= p0x;
-    p1y -= p0y;
-    p1z -= p0z;
+	p1x -= p0x;
+	p1y -= p0y;
+	p1z -= p0z;
 
-    p2x -= p0x;
-    p2y -= p0y;
-    p2z -= p0z;
+	p2x -= p0x;
+	p2y -= p0y;
+	p2z -= p0z;
 
-    p0x = p1y*p2z - p1z*p2y;
-    p0y = p1z*p2x - p1x*p2z;
-    p0z = p1x*p2y - p1y*p2x;
+	p0x = p1y * p2z - p1z * p2y;
+	p0y = p1z * p2x - p1x * p2z;
+	p0z = p1x * p2y - p1y * p2x;
 
-    crosses[ 3*i0 ]     += p0x;
-    crosses[ 3*i0 + 1 ] += p0y;
-    crosses[ 3*i0 + 2 ] += p0z;
+	crosses[ 3 * i0 ] += p0x;
+	crosses[ 3 * i0 + 1 ] += p0y;
+	crosses[ 3 * i0 + 2 ] += p0z;
 
-    crosses[ 3*i1 ]     += p0x;
-    crosses[ 3*i1 + 1 ] += p0y;
-    crosses[ 3*i1 + 2 ] += p0z;
+	crosses[ 3 * i1 ] += p0x;
+	crosses[ 3 * i1 + 1 ] += p0y;
+	crosses[ 3 * i1 + 2 ] += p0z;
 
-    crosses[ 3*i2 ]     += p0x;
-    crosses[ 3*i2 + 1 ] += p0y;
-    crosses[ 3*i2 + 2 ] += p0z;
+	crosses[ 3 * i2 ] += p0x;
+	crosses[ 3 * i2 + 1 ] += p0y;
+	crosses[ 3 * i2 + 2 ] += p0z;
 
 };
 
-THREE.UTF8Loader.prototype.decompressMesh2 = function( str, meshParams, decodeParams, name, idx, callback ) {
+THREE.UTF8Loader.prototype.decompressMesh2 = function ( str, meshParams, decodeParams, name, idx, callback ) {
 
-    var MAX_BACKREF = 96;
+	var MAX_BACKREF = 96;
 
-    // Extract conversion parameters from attribArrays.
+	// Extract conversion parameters from attribArrays.
 
-    var stride = decodeParams.decodeScales.length;
+	var stride = decodeParams.decodeScales.length;
 
 	var decodeOffsets = decodeParams.decodeOffsets;
-    var decodeScales = decodeParams.decodeScales;
+	var decodeScales = decodeParams.decodeScales;
 
-    var deltaStart = meshParams.attribRange[ 0 ];
-    var numVerts = meshParams.attribRange[ 1 ];
+	var deltaStart = meshParams.attribRange[ 0 ];
+	var numVerts = meshParams.attribRange[ 1 ];
 
-    var codeStart = meshParams.codeRange[ 0 ];
-    var codeLength = meshParams.codeRange[ 1 ];
+	var codeStart = meshParams.codeRange[ 0 ];
 
-    var numIndices = 3 * meshParams.codeRange[ 2 ];
+	var numIndices = 3 * meshParams.codeRange[ 2 ];
 
-    var indicesOut = new Uint16Array( numIndices );
+	var indicesOut = new Uint16Array( numIndices );
 
-    var crosses = new Int32Array( 3 * numVerts );
+	var crosses = new Int32Array( 3 * numVerts );
 
-    var lastAttrib = new Uint16Array( stride );
+	var lastAttrib = new Uint16Array( stride );
 
-    var attribsOutFixed = new Uint16Array( stride * numVerts );
-    var attribsOut = new Float32Array( stride * numVerts );
+	var attribsOutFixed = new Uint16Array( stride * numVerts );
+	var attribsOut = new Float32Array( stride * numVerts );
 
-    var highest = 0;
-    var outputStart = 0;
+	var highest = 0;
+	var outputStart = 0;
 
-    for ( var i = 0; i < numIndices; i += 3 ) {
+	for ( var i = 0; i < numIndices; i += 3 ) {
 
-        var code = str.charCodeAt( codeStart ++ );
+		var code = str.charCodeAt( codeStart ++ );
 
-        var max_backref = Math.min( i, MAX_BACKREF );
+		var max_backref = Math.min( i, MAX_BACKREF );
 
-        if ( code < max_backref ) {
+		if ( code < max_backref ) {
 
-            // Parallelogram
+  		// Parallelogram
 
-            var winding = code % 3;
-            var backref = i - ( code - winding );
-            var i0, i1, i2;
+			var winding = code % 3;
+			var backref = i - ( code - winding );
+			var i0, i1, i2;
 
-            switch ( winding ) {
+			switch ( winding ) {
 
-                case 0:
+				case 0:
 
-                    i0 = indicesOut[ backref + 2 ];
-                    i1 = indicesOut[ backref + 1 ];
-                    i2 = indicesOut[ backref + 0 ];
-                    break;
+					i0 = indicesOut[ backref + 2 ];
+					i1 = indicesOut[ backref + 1 ];
+					i2 = indicesOut[ backref + 0 ];
+					break;
 
-                case 1:
+				case 1:
 
-                    i0 = indicesOut[ backref + 0 ];
-                    i1 = indicesOut[ backref + 2 ];
-                    i2 = indicesOut[ backref + 1 ];
-                    break;
+					i0 = indicesOut[ backref + 0 ];
+					i1 = indicesOut[ backref + 2 ];
+					i2 = indicesOut[ backref + 1 ];
+					break;
 
-                case 2:
+				case 2:
 
-                    i0 = indicesOut[ backref + 1 ];
-                    i1 = indicesOut[ backref + 0 ];
-                    i2 = indicesOut[ backref + 2 ];
-                    break;
+					i0 = indicesOut[ backref + 1 ];
+					i1 = indicesOut[ backref + 0 ];
+					i2 = indicesOut[ backref + 2 ];
+					break;
 
-            }
+			}
 
-            indicesOut[ outputStart ++ ] = i0;
-            indicesOut[ outputStart ++ ] = i1;
+			indicesOut[ outputStart ++ ] = i0;
+			indicesOut[ outputStart ++ ] = i1;
 
-            code = str.charCodeAt( codeStart ++ );
+			code = str.charCodeAt( codeStart ++ );
 
-            var index = highest - code;
-            indicesOut[ outputStart ++ ] = index;
+			var index = highest - code;
+			indicesOut[ outputStart ++ ] = index;
 
-            if ( code === 0 ) {
+			if ( code === 0 ) {
 
-                for (var j = 0; j < 5; j ++ ) {
+				for ( var j = 0; j < 5; j ++ ) {
 
-                    var deltaCode = str.charCodeAt( deltaStart + numVerts * j + highest );
+					var deltaCode = str.charCodeAt( deltaStart + numVerts * j + highest );
 
-                    var prediction = ((deltaCode >> 1) ^ (-(deltaCode & 1))) +
-                        attribsOutFixed[stride*i0 + j] +
-                        attribsOutFixed[stride*i1 + j] -
-                        attribsOutFixed[stride*i2 + j];
+					var prediction = ( ( deltaCode >> 1 ) ^ ( - ( deltaCode & 1 ) ) ) +
+						attribsOutFixed[ stride * i0 + j ] +
+						attribsOutFixed[ stride * i1 + j ] -
+						attribsOutFixed[ stride * i2 + j ];
 
-                    lastAttrib[j] = prediction;
+					lastAttrib[ j ] = prediction;
 
-                    attribsOutFixed[ stride * highest + j ] = prediction;
-                    attribsOut[ stride * highest + j ] = decodeScales[ j ] * ( prediction + decodeOffsets[ j ] );
+					attribsOutFixed[ stride * highest + j ] = prediction;
+					attribsOut[ stride * highest + j ] = decodeScales[ j ] * ( prediction + decodeOffsets[ j ] );
 
-                }
+				}
 
-                highest ++;
+				highest ++;
 
-            } else {
+			} else {
 
-                this.copyAttrib( stride, attribsOutFixed, lastAttrib, index );
+				this.copyAttrib( stride, attribsOutFixed, lastAttrib, index );
 
-            }
+			}
 
-            this.accumulateNormal( i0, i1, index, attribsOutFixed, crosses );
+			this.accumulateNormal( i0, i1, index, attribsOutFixed, crosses );
 
-        } else {
+		} else {
 
-            // Simple
+			// Simple
 
-            var index0 = highest - ( code - max_backref );
+			var index0 = highest - ( code - max_backref );
 
-            indicesOut[ outputStart ++ ] = index0;
+			indicesOut[ outputStart ++ ] = index0;
 
-            if ( code === max_backref ) {
+			if ( code === max_backref ) {
 
-                this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
-                    numVerts, attribsOut, attribsOutFixed, lastAttrib,
-                    highest ++ );
+				this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
+					numVerts, attribsOut, attribsOutFixed, lastAttrib, highest ++ );
 
-            } else {
+			} else {
 
-                this.copyAttrib(stride, attribsOutFixed, lastAttrib, index0);
+				this.copyAttrib( stride, attribsOutFixed, lastAttrib, index0 );
 
-            }
+			}
 
-            code = str.charCodeAt( codeStart ++ );
+			code = str.charCodeAt( codeStart ++ );
 
-            var index1 = highest - code;
-            indicesOut[ outputStart ++ ] = index1;
+			var index1 = highest - code;
+			indicesOut[ outputStart ++ ] = index1;
 
-            if ( code === 0 ) {
+			if ( code === 0 ) {
 
-                this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
-                    numVerts, attribsOut, attribsOutFixed, lastAttrib,
-                    highest ++ );
+				this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
+					numVerts, attribsOut, attribsOutFixed, lastAttrib, highest ++ );
 
-            } else {
+			} else {
 
-                this.copyAttrib( stride, attribsOutFixed, lastAttrib, index1 );
+				this.copyAttrib( stride, attribsOutFixed, lastAttrib, index1 );
 
-            }
+			}
 
-            code = str.charCodeAt( codeStart ++ );
+			code = str.charCodeAt( codeStart ++ );
 
-            var index2 = highest - code;
-            indicesOut[ outputStart ++ ] = index2;
+			var index2 = highest - code;
+			indicesOut[ outputStart ++ ] = index2;
 
-            if ( code === 0 ) {
+			if ( code === 0 ) {
 
-                for ( var j = 0; j < 5; j ++ ) {
+				for ( var j = 0; j < 5; j ++ ) {
 
-                    lastAttrib[ j ] = ( attribsOutFixed[ stride * index0 + j ] + attribsOutFixed[ stride * index1 + j ] ) / 2;
+					lastAttrib[ j ] = ( attribsOutFixed[ stride * index0 + j ] + attribsOutFixed[ stride * index1 + j ] ) / 2;
 
-                }
+				}
 
-                this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
-                    numVerts, attribsOut, attribsOutFixed, lastAttrib,
-                    highest ++ );
+				this.decodeAttrib2( str, stride, decodeOffsets, decodeScales, deltaStart,
+					numVerts, attribsOut, attribsOutFixed, lastAttrib, highest ++ );
 
-            } else {
+			} else {
 
-                this.copyAttrib( stride, attribsOutFixed, lastAttrib, index2 );
+				this.copyAttrib( stride, attribsOutFixed, lastAttrib, index2 );
 
-            }
+			}
 
-            this.accumulateNormal( index0, index1, index2, attribsOutFixed, crosses );
+			this.accumulateNormal( index0, index1, index2, attribsOutFixed, crosses );
 
-        }
+		}
 
-    }
+	}
 
-    for ( var i = 0; i < numVerts; i ++ ) {
+	for ( var i = 0; i < numVerts; i ++ ) {
 
-        var nx = crosses[ 3*i ];
-        var ny = crosses[ 3*i + 1 ];
-        var nz = crosses[ 3*i + 2 ];
+		var nx = crosses[ 3 * i ];
+		var ny = crosses[ 3 * i + 1 ];
+		var nz = crosses[ 3 * i + 2 ];
 
-        var norm = 511.0 / Math.sqrt( nx*nx + ny*ny + nz*nz );
+		var norm = 511.0 / Math.sqrt( nx * nx + ny * ny + nz * nz );
 
-        var cx = str.charCodeAt( deltaStart + 5*numVerts + i );
-        var cy = str.charCodeAt( deltaStart + 6*numVerts + i );
-        var cz = str.charCodeAt( deltaStart + 7*numVerts + i );
+		var cx = str.charCodeAt( deltaStart + 5 * numVerts + i );
+		var cy = str.charCodeAt( deltaStart + 6 * numVerts + i );
+		var cz = str.charCodeAt( deltaStart + 7 * numVerts + i );
 
-        attribsOut[ stride*i + 5 ] = norm*nx + ((cx >> 1) ^ (-(cx & 1)));
-        attribsOut[ stride*i + 6 ] = norm*ny + ((cy >> 1) ^ (-(cy & 1)));
-        attribsOut[ stride*i + 7 ] = norm*nz + ((cz >> 1) ^ (-(cz & 1)));
-    }
+		attribsOut[ stride * i + 5 ] = norm * nx + ( ( cx >> 1 ) ^ ( - ( cx & 1 ) ) );
+		attribsOut[ stride * i + 6 ] = norm * ny + ( ( cy >> 1 ) ^ ( - ( cy & 1 ) ) );
+		attribsOut[ stride * i + 7 ] = norm * nz + ( ( cz >> 1 ) ^ ( - ( cz & 1 ) ) );
 
-    callback( name, idx, attribsOut, indicesOut, undefined, meshParams );
+	}
+
+	callback( name, idx, attribsOut, indicesOut, undefined, meshParams );
 
 };
 
 THREE.UTF8Loader.prototype.downloadMesh = function ( path, name, meshEntry, decodeParams, callback ) {
 
-    var loader = this;
-    var idx = 0;
+	var loader = this;
+	var idx = 0;
 
-    function onprogress( req, e ) {
+	function onprogress( data ) {
 
-        while ( idx < meshEntry.length ) {
+		while ( idx < meshEntry.length ) {
 
-            var meshParams = meshEntry[ idx ];
-            var indexRange = meshParams.indexRange;
+			var meshParams = meshEntry[ idx ];
+			var indexRange = meshParams.indexRange;
 
-            if ( indexRange ) {
+			if ( indexRange ) {
 
-                var meshEnd = indexRange[ 0 ] + 3 * indexRange[ 1 ];
+				var meshEnd = indexRange[ 0 ] + 3 * indexRange[ 1 ];
 
-                if ( req.responseText.length < meshEnd ) break;
+				if ( data.length < meshEnd ) break;
 
-                loader.decompressMesh( req.responseText, meshParams, decodeParams, name, idx, callback );
+				loader.decompressMesh( data, meshParams, decodeParams, name, idx, callback );
 
-            } else {
+			} else {
 
-                var codeRange = meshParams.codeRange;
-                var meshEnd = codeRange[ 0 ] + codeRange[ 1 ];
+				var codeRange = meshParams.codeRange;
+				var meshEnd = codeRange[ 0 ] + codeRange[ 1 ];
 
-                if ( req.responseText.length < meshEnd ) break;
+				if ( data.length < meshEnd ) break;
 
-                loader.decompressMesh2( req.responseText, meshParams, decodeParams, name, idx, callback );
-            }
+				loader.decompressMesh2( data, meshParams, decodeParams, name, idx, callback );
 
-            ++idx;
+			}
 
-        }
+			++ idx;
 
-    };
+		}
 
-    getHttpRequest( path, function( req, e ) {
+	}
 
-        if ( req.status === 200 || req.status === 0 ) {
+	getHttpRequest( path, function ( data ) {
 
-            onprogress( req, e );
+		onprogress( data );
 
-        }
+		// TODO: handle errors.
 
-        // TODO: handle errors.
-
-    }, onprogress );
+	} );
 
 };
 
 THREE.UTF8Loader.prototype.downloadMeshes = function ( path, meshUrlMap, decodeParams, callback ) {
 
-    for ( var url in meshUrlMap ) {
+	for ( var url in meshUrlMap ) {
 
-        var meshEntry = meshUrlMap[url];
-        this.downloadMesh( path + url, url, meshEntry, decodeParams, callback );
+		var meshEntry = meshUrlMap[ url ];
+		this.downloadMesh( path + url, url, meshEntry, decodeParams, callback );
 
-    }
+	}
 
 };
 
-THREE.UTF8Loader.prototype.createMeshCallback = function( materialBaseUrl, loadModelInfo, allDoneCallback ) {
+THREE.UTF8Loader.prototype.createMeshCallback = function ( materialBaseUrl, loadModelInfo, allDoneCallback ) {
 
 	var nCompletedUrls = 0;
-    var nExpectedUrls = 0;
+	var nExpectedUrls = 0;
 
-    var expectedMeshesPerUrl = {};
-    var decodedMeshesPerUrl = {};
+	var expectedMeshesPerUrl = {};
+	var decodedMeshesPerUrl = {};
 
 	var modelParts = {};
 
 	var meshUrlMap = loadModelInfo.urls;
 
-    for ( var url in meshUrlMap ) {
+	for ( var url in meshUrlMap ) {
 
-        expectedMeshesPerUrl[ url ] = meshUrlMap[ url ].length;
-        decodedMeshesPerUrl[ url ] = 0;
+		expectedMeshesPerUrl[ url ] = meshUrlMap[ url ].length;
+		decodedMeshesPerUrl[ url ] = 0;
 
 		nExpectedUrls ++;
 
-        modelParts[ url ] = new THREE.Object3D();
+		modelParts[ url ] = new THREE.Object3D();
 
-    }
+	}
 
-    var model = new THREE.Object3D();
+	var model = new THREE.Object3D();
 
-    // Prepare materials first...
+	// Prepare materials first...
 
-    var materialCreator = new THREE.MTLLoader.MaterialCreator( materialBaseUrl, loadModelInfo.options );
-    materialCreator.setMaterials( loadModelInfo.materials );
+	var materialCreator = new THREE.MTLLoader.MaterialCreator( materialBaseUrl, loadModelInfo.options );
+	materialCreator.setMaterials( loadModelInfo.materials );
 
-    materialCreator.preload();
+	materialCreator.preload();
 
 	// Create callback for creating mesh parts
 
-    var geometryCreator = new THREE.UTF8Loader.GeometryCreator();
 	var bufferGeometryCreator = new THREE.UTF8Loader.BufferGeometryCreator();
 
-	var meshCallback = function( name, idx, attribArray, indexArray, bboxen, meshParams ) {
+	var meshCallback = function ( name, idx, attribArray, indexArray, bboxen, meshParams ) {
 
-        // Got ourselves a new mesh
+		// Got ourselves a new mesh
 
-        // name identifies this part of the model (url)
-        // idx is the mesh index of this mesh of the part
-        // attribArray defines the vertices
-        // indexArray defines the faces
-        // bboxen defines the bounding box
-        // meshParams contains the material info
+		// name identifies this part of the model (url)
+		// idx is the mesh index of this mesh of the part
+		// attribArray defines the vertices
+		// indexArray defines the faces
+		// bboxen defines the bounding box
+		// meshParams contains the material info
 
-		var useBuffers = loadModelInfo.options.useBuffers !== undefined ? loadModelInfo.options.useBuffers : true;
+		var geometry = bufferGeometryCreator.create( attribArray, indexArray );
+		var material = materialCreator.create( meshParams.material );
 
-		if ( useBuffers ) {
+		var mesh = new THREE.Mesh( geometry, material );
+		modelParts[ name ].add( mesh );
 
-			var geometry = bufferGeometryCreator.create( attribArray, indexArray );
+		//model.add(new THREE.Mesh(geometry, material));
 
-		} else {
+		decodedMeshesPerUrl[ name ] ++;
 
-			var geometry = geometryCreator.create( attribArray, indexArray );
+		if ( decodedMeshesPerUrl[ name ] === expectedMeshesPerUrl[ name ] ) {
+
+			nCompletedUrls ++;
+
+			model.add( modelParts[ name ] );
+
+			if ( nCompletedUrls === nExpectedUrls ) {
+
+				// ALL DONE!!!
+
+				allDoneCallback( model );
+
+			}
 
 		}
 
-        var material = materialCreator.create( meshParams.material );
-
-		var mesh = new THREE.Mesh( geometry, material );
-        modelParts[ name ].add( mesh );
-
-        //model.add(new THREE.Mesh(geometry, material));
-
-        decodedMeshesPerUrl[ name ] ++;
-
-        if ( decodedMeshesPerUrl[ name ] === expectedMeshesPerUrl[ name ] ) {
-
-            nCompletedUrls ++;
-
-            model.add( modelParts[ name ] );
-
-            if ( nCompletedUrls === nExpectedUrls ) {
-
-                // ALL DONE!!!
-
-                allDoneCallback( model );
-
-            }
-
-        }
-
-    };
+	};
 
 	return meshCallback;
 
@@ -864,61 +661,61 @@ THREE.UTF8Loader.prototype.createMeshCallback = function( materialBaseUrl, loadM
 
 THREE.UTF8Loader.prototype.downloadModel = function ( geometryBase, materialBase, model, callback ) {
 
-    var meshCallback = this.createMeshCallback( materialBase, model, callback );
-    this.downloadMeshes( geometryBase, model.urls, model.decodeParams, meshCallback );
+	var meshCallback = this.createMeshCallback( materialBase, model, callback );
+	this.downloadMeshes( geometryBase, model.urls, model.decodeParams, meshCallback );
 
 };
 
-THREE.UTF8Loader.prototype.downloadModelJson = function ( jsonUrl, options, callback ) {
+THREE.UTF8Loader.prototype.downloadModelJson = function ( jsonUrl, callback, options ) {
 
-    getJsonRequest( jsonUrl, function( loaded ) {
+	getJsonRequest( jsonUrl, function ( loaded ) {
 
-        if ( ! loaded.decodeParams ) {
+		if ( ! loaded.decodeParams ) {
 
-            if ( options && options.decodeParams ) {
+			if ( options && options.decodeParams ) {
 
-                loaded.decodeParams = options.decodeParams;
+				loaded.decodeParams = options.decodeParams;
 
-            } else {
+			} else {
 
-                loaded.decodeParams = DEFAULT_DECODE_PARAMS;
+				loaded.decodeParams = DEFAULT_DECODE_PARAMS;
 
-            }
+			}
 
-        }
+		}
 
-        loaded.options = options;
+		loaded.options = options;
 
-        var geometryBase = jsonUrl.substr( 0, jsonUrl.lastIndexOf( "/" ) + 1 );
-        var materialBase = geometryBase;
+		var geometryBase = jsonUrl.substr( 0, jsonUrl.lastIndexOf( "/" ) + 1 );
+		var materialBase = geometryBase;
 
-        if ( options && options.geometryBase ) {
+		if ( options && options.geometryBase ) {
 
-            geometryBase = options.geometryBase;
+			geometryBase = options.geometryBase;
 
-            if ( geometryBase.charAt( geometryBase.length - 1 ) !== "/" ) {
+			if ( geometryBase.charAt( geometryBase.length - 1 ) !== "/" ) {
 
-                geometryBase = geometryBase + "/";
+				geometryBase = geometryBase + "/";
 
-            }
+			}
 
-        }
+		}
 
-        if ( options && options.materialBase ) {
+		if ( options && options.materialBase ) {
 
-            materialBase = options.materialBase;
+			materialBase = options.materialBase;
 
-            if ( materialBase.charAt( materialBase.length - 1 ) !== "/" ) {
+			if ( materialBase.charAt( materialBase.length - 1 ) !== "/" ) {
 
-                materialBase = materialBase  + "/";
+				materialBase = materialBase + "/";
 
-            }
+			}
 
-        }
+		}
 
-        this.downloadModel( geometryBase, materialBase, loaded, callback );
+		this.downloadModel( geometryBase, materialBase, loaded, callback );
 
-    }.bind( this ) );
+	}.bind( this ) );
 
 };
 
@@ -926,35 +723,30 @@ THREE.UTF8Loader.prototype.downloadModelJson = function ( jsonUrl, options, call
 
 function getHttpRequest( url, onload, opt_onprogress ) {
 
-    var LISTENERS = {
+	var req = new THREE.FileLoader();
+	req.load( url, onload, opt_onprogress );
 
-        load: function( e ) { onload( req, e ); },
-        progress: function( e ) { opt_onprogress( req, e ); }
-
-    };
-
-    var req = new XMLHttpRequest();
-    addListeners( req, LISTENERS );
-
-    req.open( 'GET', url, true );
-    req.send( null );
 }
 
 function getJsonRequest( url, onjson ) {
 
-    getHttpRequest( url,
-        function( e ) { onjson( JSON.parse( e.responseText ) ); },
-        function() {} );
+	getHttpRequest( url, function ( e ) {
+
+		onjson( JSON.parse( e ) );
+
+	},
+	function () {} );
 
 }
 
 function addListeners( dom, listeners ) {
 
-    // TODO: handle event capture, object binding.
+	// TODO: handle event capture, object binding.
 
-    for ( var key in listeners ) {
+	for ( var key in listeners ) {
 
-        dom.addEventListener( key, listeners[ key ] );
+		dom.addEventListener( key, listeners[ key ] );
 
-    }
+	}
+
 }
