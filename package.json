@@ -1,21 +1,21 @@
 {
-  "name": "losthighway",
+  "name": "infinite-highway",
   "version": "1.0.0",
-  "description": "losthighway",
+  "description": "infinite-highway",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://homerjam@github.com/homerjam/losthighway.git"
+    "url": "git+https://homerjam@github.com/homerjam/infinite-highway.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/homerjam/losthighway/issues"
+    "url": "https://github.com/homerjam/infinite-highway/issues"
   },
-  "homepage": "https://github.com/homerjam/losthighway#readme",
+  "homepage": "https://github.com/homerjam/infinite-highway#readme",
   "dependencies": {
     "eslint": "^4.12.1"
   }
