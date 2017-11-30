@@ -1,11 +1,10 @@
 bower_components/jquery/*
-!bower_components/jquery/jquery.min.js
-bower_components/threejs-examples
+!bower_components/jquery/dist
+bower_components/jquery/dist/*
+!bower_components/jquery/dist/jquery.min.js
 bower_components/threejs/*
 !bower_components/threejs/build
 !bower_components/threejs/examples
 bower_components/threejs/examples/*
 !bower_components/threejs/examples/js
-bower_components/tween.js/*
-!bower_components/tween.js/build
 node_modules
