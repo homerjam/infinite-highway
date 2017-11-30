@@ -225,41 +225,41 @@ function init() {
 
     scene.fog = new THREE.FogExp2(0x000000, 0.0002);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-    light1 = new THREE.SpotLight(0xffffff, 4);
-    light1.angle = Math.PI/8;
-    light1.penumbra = 0.5;
+    light1 = new THREE.SpotLight(0xffffff, 6);
+    light1.angle = Math.PI/14;
+    light1.penumbra = 0.2;
     light1.decay = 0;
     light1.distance = 500;
     scene.add(light1);
 
-    light2 = new THREE.SpotLight(0xffffff, 4);
-    light2.angle = Math.PI/8;
-    light2.penumbra = 0.5;
+    light2 = new THREE.SpotLight(0xffffff, 6);
+    light2.angle = Math.PI/14;
+    light2.penumbra = 0.2;
     light2.decay = 0;
     light2.distance = 500;
     scene.add(light2);
 
-    light1.position.x = -60;
-    light2.position.x = 60;
+    light1.position.x = -50;
+    light2.position.x = 50;
     light1.position.y = light2.position.y = 100;
     light1.position.z = light2.position.z = -120;
 
     var sphere = new THREE.SphereGeometry(10, 16, 8);
 
     var l1 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0xff0000}));
-    l1.position.x = -150;
+    l1.position.x = -220;
     l1.position.y = -200;
-    l1.position.z = -800;
+    l1.position.z = -1400;
     scene.add(l1);
 
     light1.target = l1;
 
     var l2 = new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({color: 0x00ff00}));
-    l2.position.x = 150;
+    l2.position.x = 220;
     l2.position.y = -200;
-    l2.position.z = -800;
+    l2.position.z = -1400;
     scene.add(l2);
 
     light2.target = l2;
